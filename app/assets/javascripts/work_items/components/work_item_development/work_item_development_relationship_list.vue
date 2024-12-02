@@ -1,17 +1,22 @@
 <script>
 import { GlButton } from '@gitlab/ui';
+import { uniqueId } from 'lodash';
 import { sprintf, __ } from '~/locale';
 import { renderGFM } from '~/behaviors/markdown/render_gfm';
 import { TYPENAME_FEATURE_FLAG } from '~/graphql_shared/constants';
 
 import WorkItemDevelopmentMrItem from './work_item_development_mr_item.vue';
-import WorkItemDevelopmentFfItem from './work_item_development_ff_item.vue';
+import WorkItemDevelopmentBranchItem from './work_item_development_branch_item.vue';
 
 const DEFAULT_RENDER_COUNT = 3;
 
 export default {
   components: {
     WorkItemDevelopmentMrItem,
+    WorkItemDevelopmentFfItem: () =>
+      import(
+        'ee_component/work_items/components/work_item_development/work_item_development_ff_item.vue'
+      ),
     GlButton,
   },
   props: {
@@ -27,8 +32,10 @@ export default {
   },
   computed: {
     list() {
-      // keeping as a separate prop, will be appending with branches
-      return [...this.sortedFeatureFlags, ...this.mergeRequests];
+      return [...this.sortedFeatureFlags, ...this.mergeRequests, ...this.relatedBranches];
+    },
+    relatedBranches() {
+      return this.workItemDevWidget.relatedBranches?.nodes || [];
     },
     mergeRequests() {
       return this.workItemDevWidget.closingMergeRequests?.nodes || [];
@@ -70,7 +77,9 @@ export default {
       if (this.isMergeRequest(item)) {
         component = WorkItemDevelopmentMrItem;
       } else if (this.isFeatureFlag(item)) {
-        component = WorkItemDevelopmentFfItem;
+        component = 'work-item-development-ff-item';
+      } else if (this.isBranch(item)) {
+        component = WorkItemDevelopmentBranchItem;
       } else {
         component = 'li';
       }
@@ -83,13 +92,17 @@ export default {
       // eslint-disable-next-line no-underscore-dangle
       return item.__typename === TYPENAME_FEATURE_FLAG;
     },
+    isBranch(item) {
+      // eslint-disable-next-line no-underscore-dangle
+      return item.__typename === 'WorkItemRelatedBranch';
+    },
     async toggleShowLess() {
       this.showLess = !this.showLess;
       await this.$nextTick();
       renderGFM(this.$refs['list-body']);
     },
     itemId(item) {
-      return item.id || item.mergeRequest.id;
+      return item?.id || item?.mergeRequest?.id || uniqueId('branch-id-');
     },
     itemObject(item) {
       return this.isMergeRequest(item) ? item.mergeRequest : item;

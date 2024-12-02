@@ -11,10 +11,10 @@ DETAILS:
 **Offering:** GitLab.com, Self-managed, GitLab Dedicated
 **Status:** Experiment
 
-> - [Introduced](https://gitlab.com/groups/gitlab-org/-/epics/8560) in GitLab 15.11 as an [experiment](../../../../policy/experiment-beta-support.md#experiment) release [with a flag](../../../../administration/feature_flags.md) named `ml_experiment_tracking`. Disabled by default.
+> - [Introduced](https://gitlab.com/groups/gitlab-org/-/epics/8560) in GitLab 15.11 as an [experiment](../../../../policy/development_stages_support.md#experiment) release [with a flag](../../../../administration/feature_flags.md) named `ml_experiment_tracking`. Disabled by default.
 
 NOTE:
-Model experiment tracking is an [experiment](../../../../policy/experiment-beta-support.md).
+Model experiment tracking is an [experiment](../../../../policy/development_stages_support.md).
 Provide feedback [for model experiment tracking](https://gitlab.com/gitlab-org/gitlab/-/issues/381660). Provide feedback for [model registry](https://gitlab.com/gitlab-org/gitlab/-/epics/9423).
 
 [MLflow](https://mlflow.org/) is a popular open source tool for Machine Learning experiment tracking.
@@ -315,6 +315,7 @@ of the methods below are also supported with the same caveats.
 
 | Method                   | Supported       | Version Added | Comments                                                                                     |
 |--------------------------|-----------------|---------------|----------------------------------------------------------------------------------------------|
+| `create_experiment`      | Yes             | 15.11         |                                                                                              |
 | `get_experiment`         | Yes             | 15.11         |                                                                                              |
 | `get_experiment_by_name` | Yes             | 15.11         |                                                                                              |
 | `delete_experiment`      | Yes             | 17.5          |                                                                                              |

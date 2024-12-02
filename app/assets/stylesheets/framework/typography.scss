@@ -192,8 +192,7 @@
   }
 
   hr {
-    border-color: rgba($black, 0.15);
-
+    @apply gl-border-default;
     margin: 10px 0;
   }
 
@@ -684,7 +683,7 @@
 
   @include email-code-block;
 
-  &.gl-text-secondary {
+  &.md-child-content-text-subtle {
     @apply gl-text-subtle;
 
     p,

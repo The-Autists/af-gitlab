@@ -219,8 +219,8 @@ Same as when column is dropped, after the rename is completed, we need to [remov
 
 Adding or removing a `NOT NULL` clause (or another constraint) can typically be
 done without requiring downtime. Adding a `NOT NULL` contraint requires that any application
-changes are deployed _first_, so it should happen in a post-deployment migration. 
-In contrary removing a `NOT NULL` contraint should be done in a regular migration. 
+changes are deployed _first_, so it should happen in a post-deployment migration.
+In contrary removing a `NOT NULL` contraint should be done in a regular migration.
 This way any code which insers `NULL` values can safely run for the column.
 
 Avoid using `change_column` as it produces an inefficient query because it re-defines
@@ -306,7 +306,7 @@ Changing column defaults is difficult because of how Rails handles values
 that are equal to the default.
 
 NOTE:
-Rails ignores sending the default values to PostgreSQL when writing records. It leaves this task to
+Rails ignores sending the default values to PostgreSQL when inserting records, if the [partial_inserts](https://gitlab.com/gitlab-org/gitlab/-/blob/55ac06c9083434e6c18e0a2aaf8be5f189ef34eb/config/application.rb#L40) config has been enabled. It leaves this task to
 the database. When migrations change the default values of the columns, the running application is unaware
 of this change due to the schema cache. The application is then under the risk of accidentally writing
 wrong data to the database, especially when deploying the new version of the code

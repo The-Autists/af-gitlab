@@ -284,12 +284,12 @@ RSpec.describe User, feature_category: :user_profile do
     end
 
     describe '#user_detail' do
-      it 'does not persist `user_detail` by default' do
-        expect(create(:user).user_detail).not_to be_persisted
+      it 'persists `user_detail` by default' do
+        expect(create(:user).user_detail).to be_persisted
       end
 
       shared_examples 'delegated field' do |field|
-        it 'creates `user_detail` when the field is given' do
+        it 'correctly stores the `user_detail` attribute when the field is given on user creation' do
           user = create(:user, field => 'my field')
 
           expect(user.user_detail).to be_persisted
@@ -300,12 +300,6 @@ RSpec.describe User, feature_category: :user_profile do
           user = create(:user, field => 'my field')
 
           expect(user.public_send(field)).to eq(user.user_detail[field])
-        end
-
-        it 'creates `user_detail` when first updated' do
-          user = create(:user)
-
-          expect { user.update!(field => 'my field') }.to change { user.user_detail.persisted? }.from(false).to(true)
         end
       end
 
@@ -327,12 +321,6 @@ RSpec.describe User, feature_category: :user_profile do
         user = create(:user, website_url: 'http://example.com')
 
         expect(user.website_url).to eq(user.user_detail.website_url)
-      end
-
-      it 'creates `user_detail` when `website_url` is first updated' do
-        user = create(:user)
-
-        expect { user.update!(website_url: 'https://example.com') }.to change { user.user_detail.persisted? }.from(false).to(true)
       end
 
       it 'delegates `pronouns` to `user_detail`' do
@@ -1635,6 +1623,14 @@ RSpec.describe User, feature_category: :user_profile do
     it { is_expected.to respond_to(:admin?) }
     it { is_expected.to respond_to(:name) }
     it { is_expected.to respond_to(:external?) }
+  end
+
+  describe 'before_validation callbacks' do
+    it 'creates the user_detail record' do
+      user = create(:user)
+
+      expect(UserDetail.exists?(user.id)).to be(true)
+    end
   end
 
   describe 'before save hook' do
@@ -3973,6 +3969,7 @@ RSpec.describe User, feature_category: :user_profile do
           end
 
           [
+            Gitlab::Access::PLANNER,
             Gitlab::Access::REPORTER,
             Gitlab::Access::DEVELOPER,
             Gitlab::Access::MAINTAINER,
@@ -5095,7 +5092,7 @@ RSpec.describe User, feature_category: :user_profile do
 
     subject { user.membership_groups }
 
-    specify { is_expected.to contain_exactly(parent_group, child_group) }
+    it { is_expected.to contain_exactly(parent_group, child_group) }
   end
 
   describe '#first_group_paths' do
@@ -5297,18 +5294,22 @@ RSpec.describe User, feature_category: :user_profile do
   describe '#projects_where_can_admin_issues' do
     let(:user) { create(:user) }
 
-    it 'includes projects for which the user access level is above or equal to reporter' do
+    it 'includes projects for which the user access level is above or equal to planner' do
+      planner_project = create(:project) { |p| p.add_planner(user) }
       reporter_project  = create(:project) { |p| p.add_reporter(user) }
       developer_project = create(:project) { |p| p.add_developer(user) }
       maintainer_project = create(:project) { |p| p.add_maintainer(user) }
 
-      expect(user.projects_where_can_admin_issues.to_a).to match_array([maintainer_project, developer_project, reporter_project])
+      expect(user.projects_where_can_admin_issues.to_a).to match_array(
+        [maintainer_project, developer_project, reporter_project, planner_project]
+      )
       expect(user.can?(:admin_issue, maintainer_project)).to eq(true)
       expect(user.can?(:admin_issue, developer_project)).to eq(true)
       expect(user.can?(:admin_issue, reporter_project)).to eq(true)
+      expect(user.can?(:admin_issue, planner_project)).to eq(true)
     end
 
-    it 'does not include for which the user access level is below reporter' do
+    it 'does not include for which the user access level is below planner' do
       project = create(:project)
       guest_project = create(:project) { |p| p.add_guest(user) }
 
@@ -6906,11 +6907,13 @@ RSpec.describe User, feature_category: :user_profile do
       let(:maintainer_project) { create(:project) }
       let(:reporter_project) { create(:project) }
       let(:developer_project) { create(:project) }
+      let(:planner_project) { create(:project) }
       let(:guest_project) { create(:project) }
       let(:no_access_project) { create(:project) }
 
       let(:projects) do
-        [owner_project, maintainer_project, reporter_project, developer_project, guest_project, no_access_project].map(&:id)
+        [owner_project, maintainer_project, reporter_project,
+         developer_project, planner_project, guest_project, no_access_project].map(&:id)
       end
 
       let(:expected) do
@@ -6920,6 +6923,7 @@ RSpec.describe User, feature_category: :user_profile do
           reporter_project.id => Gitlab::Access::REPORTER,
           developer_project.id => Gitlab::Access::DEVELOPER,
           guest_project.id => Gitlab::Access::GUEST,
+          planner_project.id => Gitlab::Access::PLANNER,
           no_access_project.id => Gitlab::Access::NO_ACCESS
         }
       end
@@ -6929,6 +6933,7 @@ RSpec.describe User, feature_category: :user_profile do
         maintainer_project.add_maintainer(user)
         reporter_project.add_reporter(user)
         developer_project.add_developer(user)
+        planner_project.add_planner(user)
         guest_project.add_guest(user)
       end
 
@@ -6987,11 +6992,13 @@ RSpec.describe User, feature_category: :user_profile do
       let(:maintainer_group) { create(:group) }
       let(:reporter_group) { create(:group) }
       let(:developer_group) { create(:group) }
+      let(:planner_group) { create(:group) }
       let(:guest_group) { create(:group) }
       let(:no_access_group) { create(:group) }
 
       let(:groups) do
-        [owner_group, maintainer_group, reporter_group, developer_group, guest_group, no_access_group].map(&:id)
+        [owner_group, maintainer_group, reporter_group, developer_group,
+         planner_group, guest_group, no_access_group, planner_group].map(&:id)
       end
 
       let(:expected) do
@@ -7000,6 +7007,7 @@ RSpec.describe User, feature_category: :user_profile do
           maintainer_group.id => Gitlab::Access::MAINTAINER,
           reporter_group.id => Gitlab::Access::REPORTER,
           developer_group.id => Gitlab::Access::DEVELOPER,
+          planner_group.id => Gitlab::Access::PLANNER,
           guest_group.id => Gitlab::Access::GUEST,
           no_access_group.id => Gitlab::Access::NO_ACCESS
         }
@@ -7010,6 +7018,7 @@ RSpec.describe User, feature_category: :user_profile do
         maintainer_group.add_maintainer(user)
         reporter_group.add_reporter(user)
         developer_group.add_developer(user)
+        planner_group.add_planner(user)
         guest_group.add_guest(user)
       end
 
@@ -8092,6 +8101,7 @@ RSpec.describe User, feature_category: :user_profile do
     context 'when memberships exist' do
       it 'returns the highest access level for non requested memberships' do
         create(:group_member, :reporter, user_id: user.id)
+        create(:project_member, :planner, user_id: user.id)
         create(:project_member, :guest, user_id: user.id)
         create(:project_member, :maintainer, user_id: user.id, requested_at: Time.current)
 
@@ -8565,7 +8575,7 @@ RSpec.describe User, feature_category: :user_profile do
 
     subject { user.send(:groups_with_developer_maintainer_project_access) }
 
-    specify { is_expected.to contain_exactly(developer_group2) }
+    it { is_expected.to contain_exactly(developer_group2) }
   end
 
   describe '.get_ids_by_ids_or_usernames' do
@@ -8815,6 +8825,12 @@ RSpec.describe User, feature_category: :user_profile do
       let_it_be(:user) { create(:user) }
 
       it { is_expected.to eq false }
+    end
+  end
+
+  describe '#has_composite_identity?' do
+    it 'is false' do
+      expect(build(:user).has_composite_identity?).to be false
     end
   end
 

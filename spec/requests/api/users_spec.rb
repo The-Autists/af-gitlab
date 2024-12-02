@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe API::Users, :aggregate_failures, feature_category: :user_management do
+RSpec.describe API::Users, :with_current_organization, :aggregate_failures, feature_category: :user_management do
   include WorkhorseHelpers
   include KeysetPaginationHelpers
   include CryptoHelpers
@@ -946,7 +946,7 @@ RSpec.describe API::Users, :aggregate_failures, feature_category: :user_manageme
       let(:job_title) { 'Fullstack Engineer' }
 
       before do
-        create(:user_detail, user: user, job_title: job_title)
+        user.update!(job_title: job_title)
       end
 
       it 'returns job title of a user' do

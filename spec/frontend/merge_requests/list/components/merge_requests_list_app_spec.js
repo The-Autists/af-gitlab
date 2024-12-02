@@ -123,6 +123,7 @@ describe('Merge requests list app', () => {
       recentSearchesStorageKey: 'merge_requests',
       sortOptions: getSortOptions({ hasManualSort: false }),
       initialSortBy: 'CREATED_DESC',
+      issuableSymbol: '!',
       issuables: getQueryResponse.data.project.mergeRequests.nodes,
       tabs: mergeRequestListTabs,
       currentTab: 'opened',
@@ -640,5 +641,21 @@ describe('Merge requests list app', () => {
         expect(wrapper.findByTestId('target-branch').exists()).toBe(exists);
       },
     );
+  });
+
+  describe('route watcher', () => {
+    it('refetches query when route changes', async () => {
+      createComponent();
+
+      router.replace('?assignee_username[]=test-username');
+
+      await waitForPromises();
+
+      expect(getQueryResponseMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assigneeUsernames: 'test-username',
+        }),
+      );
+    });
   });
 });

@@ -1029,12 +1029,12 @@ DETAILS:
 **Offering:** GitLab.com
 **Status:** Beta
 
-> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/425066) in GitLab 16.9 as a [beta](../policy/experiment-beta-support.md) feature [with a flag](../administration/feature_flags.md) named `google_cloud_support_feature_flag`. Disabled by default.
+> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/425066) in GitLab 16.9 as a [beta](../policy/development_stages_support.md) feature [with a flag](../administration/feature_flags.md) named `google_cloud_support_feature_flag`. Disabled by default.
 > - [Enabled on GitLab.com](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/150472) in GitLab 17.1. Feature flag `google_cloud_support_feature_flag` removed.
 > - `use_inherited_settings` parameter [introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/467089) in GitLab 17.2 [with a flag](../administration/feature_flags.md) named `integration_api_inheritance`. Disabled by default.
 > - `use_inherited_settings` parameter [generally available](https://gitlab.com/gitlab-org/gitlab/-/issues/467186) in GitLab 17.3. Feature flag `integration_api_inheritance` removed.
 
-This feature is in [beta](../policy/experiment-beta-support.md).
+This feature is in [beta](../policy/development_stages_support.md).
 
 ### Set up Google Artifact Management
 
@@ -1076,12 +1076,12 @@ DETAILS:
 **Offering:** GitLab.com
 **Status:** Beta
 
-> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/439200) in GitLab 16.10 as a [beta](../policy/experiment-beta-support.md) feature [with a flag](../administration/feature_flags.md) named `google_cloud_support_feature_flag`. Disabled by default.
+> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/439200) in GitLab 16.10 as a [beta](../policy/development_stages_support.md) feature [with a flag](../administration/feature_flags.md) named `google_cloud_support_feature_flag`. Disabled by default.
 > - [Enabled on GitLab.com](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/150472) in GitLab 17.1. Feature flag `google_cloud_support_feature_flag` removed.
 > - `use_inherited_settings` parameter [introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/467089) in GitLab 17.2 [with a flag](../administration/feature_flags.md) named `integration_api_inheritance`. Disabled by default.
 > - `use_inherited_settings` parameter [generally available](https://gitlab.com/gitlab-org/gitlab/-/issues/467186) in GitLab 17.3. Feature flag `integration_api_inheritance` removed.
 
-This feature is in [beta](../policy/experiment-beta-support.md).
+This feature is in [beta](../policy/development_stages_support.md).
 
 ### Set up Google Cloud Identity and Access Management
 
@@ -1212,10 +1212,10 @@ Parameters:
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `recipients` | string | yes | Recipients or channels separated by whitespaces. |
-| `default_irc_uri` | string | no | `irc://irc.network.net:6697/`. |
-| `server_host` | string | no | localhost. |
-| `server_port` | integer | no | 6659. |
+| `recipients` | string | yes | Comma-separated list of channels or email addresses. |
+| `default_irc_uri` | string | no | URI to add before each recipient. The default value is `irc://irc.network.net:6697/`. |
+| `server_host` | string | no | irker daemon hostname. The default value is `localhost`. |
+| `server_port` | integer | no | irker daemon port. The default value is `6659`. |
 | `colorize_messages` | boolean | no | Colorize messages. |
 | `use_inherited_settings` | boolean | no | Indicates whether to inherit the default settings. Defaults to `false`. |
 
@@ -1624,9 +1624,9 @@ Parameters:
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `username` | string | yes | The username of a Packagist account. |
-| `token` | string | yes | API token to the Packagist server. |
-| `server` | boolean | no | URL of the Packagist server. Leave blank for the default `<https://packagist.org>`. |
+| `username` | string | yes | Username of a Packagist account. |
+| `token` | string | yes | API token of the Packagist server. |
+| `server` | boolean | no | URL of the Packagist server. The default value is `https://packagist.org`. |
 | `push_events` | boolean | no | Enable notifications for push events. |
 | `merge_requests_events` | boolean | no | Enable notifications for merge request events. |
 | `tag_push_events` | boolean | no | Enable notifications for tag push events. |

@@ -156,6 +156,10 @@ You can also remove (**{close}**) a merge request from the merge train details v
 > - Auto-merge for merge trains [enabled](https://gitlab.com/gitlab-org/gitlab/-/issues/470667) on GitLab.com in GitLab 17.2.
 > - Auto-merge for merge trains [enabled](https://gitlab.com/gitlab-org/gitlab/-/issues/470667) by default in GitLab 17.4.
 
+FLAG:
+The availability of this feature is controlled by a feature flag.
+For more information, see the history.
+
 Prerequisites:
 
 - You must have [permissions](../../user/permissions.md) to merge or push to the target branch.
@@ -216,7 +220,7 @@ DETAILS:
 **Status:** Experiment
 
 > - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/414505) in GitLab 16.5 [with a flag](../../administration/feature_flags.md) named `merge_trains_skip_train`. Disabled by default.
-> - [Enabled](https://gitlab.com/gitlab-org/gitlab/-/issues/422111) as an [experiment feature](../../policy/experiment-beta-support.md) in GitLab 16.10.
+> - [Enabled](https://gitlab.com/gitlab-org/gitlab/-/issues/422111) as an [experiment feature](../../policy/development_stages_support.md) in GitLab 16.10.
 
 FLAG:
 On self-managed GitLab, by default this feature is available. To hide the feature,

@@ -271,9 +271,13 @@ export default {
           />
         </slot>
       </div>
-      <div class="gl-grow gl-text-gray-900" :class="{ 'gl-w-max': isFlyout }">
+      <div
+        class="gl-grow gl-text-default"
+        :class="{ 'gl-w-max': isFlyout }"
+        data-testid="nav-item-link-label"
+      >
         {{ item.title }}
-        <div v-if="item.subtitle" class="gl-truncate-end gl-text-sm gl-text-gray-500">
+        <div v-if="item.subtitle" class="gl-truncate-end gl-text-sm gl-text-subtle">
           {{ item.subtitle }}
         </div>
       </div>

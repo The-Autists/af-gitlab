@@ -198,6 +198,69 @@ This is one small step towards moving away from CI/CD templates in preference of
 
 <div class="deprecation breaking-change" data-milestone="18.0">
 
+### CI/CD job token - **Authorized groups and projects** allowlist enforcement
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">16.5</span>
+- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/383084).
+
+</div>
+
+With the [**Authorized groups and projects** setting](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#add-a-group-or-project-to-the-job-token-allowlist)
+introduced in GitLab 15.9 (renamed from **Limit access _to_ this project** in GitLab 16.3), you can control CI/CD job token access to your project.
+When set to **Only this project and any groups and projects in the allowlist**,
+only groups or projects added to the allowlist can use job tokens to access your project.
+
+For projects created before GitLab 15.9, the allowlist was disabled by default
+([**All groups and projects**](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#allow-any-project-to-access-your-project)
+access setting selected), allowing job token access from any project.
+The allowlist is now enabled by default in all new projects. In older
+projects, it might still be disabled or you might have manually selected
+the **All groups and projects** option to make access unrestricted.
+
+Starting in GitLab 17.6, administrators for Self-managed and GitLab Dedicated instances can optionally
+[enforce this more secure setting for all projects](https://docs.gitlab.com/ee/administration/settings/continuous_integration.html#job-token-permissions).
+This setting prevents project maintainers from selecting **All groups and projects**.
+This change ensures a higher level of security between projects.
+In GitLab 18.0, this setting will be enabled by default on GitLab.com, Self-managed, and GitLab Dedicated.
+
+To prepare for this change, project maintainers using job tokens for cross-project authentication
+should populate their project's **Authorized groups and projects** allowlists. They should then change
+the setting to **Only this project and any groups and projects in the allowlist**.
+
+</div>
+
+<div class="deprecation breaking-change" data-milestone="18.0">
+
+### CI/CD job token - **Limit access _from_ your project** setting removal
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">15.9</span>
+- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/395708).
+
+</div>
+
+In GitLab 14.4, we introduced a setting to [limit access _from_ your project's CI/CD job tokens (`CI_JOB_TOKEN`)](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#limit-your-projects-job-token-access) to make it more secure.
+This setting was called **Limit CI_JOB_TOKEN access**. In GitLab 16.3, we renamed this setting to **Limit access _from_ this project** for clarity.
+
+In GitLab 15.9, we introduced an alternative setting called
+[**Authorized groups and projects**](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#add-a-group-or-project-to-the-job-token-allowlist).
+This setting controls job token access _to_ your project by using an allowlist.
+This new setting is a large improvement over the original. The first iteration is deprecated
+in GitLab 16.0 and scheduled for removal in GitLab 18.0.
+
+The **Limit access _from_ this project** setting is disabled by default for all new projects.
+In GitLab 16.0 and later, you cannot re-enable this this setting after it is disabled in any project.
+Instead, use the **Authorized groups and projects** setting to control job token access to your projects.
+
+</div>
+
+<div class="deprecation breaking-change" data-milestone="18.0">
+
 ### CodeClimate-based Code Quality scanning will be removed
 
 <div class="deprecation-notes">
@@ -209,8 +272,8 @@ This is one small step towards moving away from CI/CD templates in preference of
 </div>
 
 In GitLab 18.0, we will remove CodeClimate-based Code Quality scanning.
-However, you'll still be able to import results from quality tools by [providing a report as an artifact](https://docs.gitlab.com/ee/ci/testing/code_quality.html#implement-a-custom-tool), just as you can today.
-In addition, you can also see this [epic](https://gitlab.com/groups/gitlab-org/-/epics/8790) for new directions considered for Code Quality.
+In its place, you should use quality tools directly in your CI/CD pipeline and [provide the tool's report as an artifact](https://docs.gitlab.com/ee/ci/testing/code_quality.html#import-code-quality-results-from-a-cicd-job).
+Many tools already support the required report format, and you can integrate them by following the [documented steps](https://docs.gitlab.com/ee/ci/testing/code_quality.html#integrate-common-tools-with-code-quality).
 
 We expect to implement this change by:
 
@@ -221,7 +284,7 @@ Effective immediately, CodeClimate-based scanning will receive only [limited upd
 After End of Support in GitLab 18.0, we won't provide further updates.
 However, we won't delete previously published container images or remove the ability to run them by using custom CI/CD pipeline job definitions.
 
-For more details and required actions, see the [deprecation issue for this change](https://gitlab.com/gitlab-org/gitlab/-/issues/471677#action-required).
+For more details, see [Scan code for quality violations](https://docs.gitlab.com/ee/ci/testing/code_quality.html#scan-code-for-quality-violations).
 
 </div>
 
@@ -248,32 +311,6 @@ compliance pipelines in GitLab 17.3 and will remove the feature in GitLab 18.0.
 Customers should migrate from compliance pipelines to the new
 [pipeline execution policy type](https://docs.gitlab.com/ee/user/application_security/policies/pipeline_execution_policies.html)
 as soon as possible.
-
-</div>
-
-<div class="deprecation breaking-change" data-milestone="18.0">
-
-### Default CI/CD job token (`CI_JOB_TOKEN`) scope changed
-
-<div class="deprecation-notes">
-
-- Announced in GitLab <span class="milestone">15.9</span>
-- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
-- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/383084).
-
-</div>
-
-In GitLab 14.4 we introduced the ability to [limit your project's CI/CD job token](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#limit-your-projects-job-token-access) (`CI_JOB_TOKEN`) access to make it more secure. You can prevent job tokens **from your project's** pipelines from being used to **access other projects**. When enabled with no other configuration, your pipelines cannot access other projects. To use the job token to access other projects from your pipeline, you must list those projects explicitly in the **Limit CI_JOB_TOKEN access** setting's allowlist, and you must be a maintainer in all the projects.
-
-The job token functionality was updated in 15.9 with a better security setting to [allow access to your project with a job token](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#add-a-group-or-project-to-the-job-token-allowlist). When enabled with no other configuration, job tokens **from other projects** cannot **access your project**. Similar to the older setting, you can optionally allow other projects to access your project with a job token if you list those projects explicitly in the **Allow access to this project with a CI_JOB_TOKEN** setting's allowlist (now renamed, see below). With this new setting, you must be a maintainer in your own project, but only need to have the Guest role in the other projects.
-
-The **Limit** setting was deprecated in 16.0 in preference of the better **Allow access** setting (renamed to the **Authorized groups and projects** allowlist) and the **Limit** setting was disabled by default for all new projects. From this point forward, if the **Limit** setting is disabled in any project, it will not be possible to re-enable this setting in 16.0 or later.
-
-In 18.0, we will enforce the usage of the allowlist on GitLab.com. This change ensures a higher level of security between projects. If you currently use the **Limit** setting, you should update your projects to use the **Authorized groups and projects** allowlist instead. If other projects access your project with a job token, you must add them to the allowlist.
-
-To prepare for this change, users on GitLab.com or self-managed GitLab 15.9 or later should set the **Authorized groups and projects** setting to **Only this project and any groups and projects in the allowlist**, and add projects and groups to the allowlist as needed. It will not be possible to disable the setting on GitLab.com in 18.0 or later. In FitLab 17.6, we added the option for Self-managed and Dedicated administrators to [optionally turn this enforcement off](https://gitlab.com/gitlab-org/gitlab/-/issues/440697), though this would not be the recommended default.
-
-We have gone through a few iterations for the naming of these settings. In 16.3, the deprecated **Limit CI_JOB_TOKEN access** setting updated to **Limit access _from_ this project**, and the newer **Allow access to this project with a CI_JOB_TOKEN** setting was updated to **Limit access _to_ this project**. This was still proving to be confusing, and in 17.3 we updated this section to be the **Job token permissions > Authorized groups and projects** allowlist setting.
 
 </div>
 
@@ -371,6 +408,42 @@ in GitLab 18.0.
 
 Users who have the `package_metadata_synchronization` feature flag enabled are advised to
 upgrade to GitLab 16.3 or above, and remove the feature flag configuration.
+
+</div>
+
+<div class="deprecation breaking-change" data-milestone="18.0">
+
+### Deprecation of `STORAGE` enum in `NamespaceProjectSortEnum` GraphQL API
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.7</span>
+- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/396284).
+
+</div>
+
+The `STORAGE` enum in `NamespaceProjectSortEnum` of GitLab's GraphQL API will be removed in GitLab 18.0.
+
+To prepare for this change, we recommend reviewing and updating your GraphQL queries that interact with the `NamespaceProjectSortEnum`. Replace any references to the `STORAGE` field with `EXCESS_REPO_STORAGE_SIZE_DESC`.
+
+</div>
+
+<div class="deprecation breaking-change" data-milestone="18.0">
+
+### Deprecation of `name` field in `ProjectMonthlyUsageType` GraphQL API
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.7</span>
+- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/381894).
+
+</div>
+
+The `name` field in the `ProjectMonthlyUsageType` of GitLab's GraphQL API will be removed in GitLab 18.0.
+
+To prepare for this change, we recommend reviewing and updating your GraphQL queries that interact with the `ProjectMonthlyUsageType`. Replace any references to the `name` field with `project.name`.
 
 </div>
 
@@ -489,6 +562,31 @@ Project Owners and Maintainers should review their private projects' lists of me
 
 </div>
 
+<div class="deprecation " data-milestone="18.0">
+
+### Increased default security for use of pipeline variables
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.7</span>
+- Removal in GitLab <span class="milestone">18.0</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/502382).
+
+</div>
+
+GitLab believes in secure-by-default practices. To honor this, we are making some changes to support least privilege principles relating to the use of CI/CD variables.
+Today, users with the Developer role or higher are able to use [pipeline variables](https://docs.gitlab.com/ee/ci/variables/#use-pipeline-variables) by default, without any verification or opt-in.
+In 18.0, GitLab is updating the [pipeline variable restrictions](https://docs.gitlab.com/ee/ci/variables/#restrict-pipeline-variables) to default enabled.
+As a result of this change, the ability to use pipeline CI/CD variables will be restricted for all users by default.
+If necessary, you can manually update this setting with a minimum role that is allowed to use pipeline variables, though it's recommended to keep this as restricted as possible.
+
+You can already start using a more secure-by-default experience for pipeline variables by enabling the current setting with the Project settings API, to increase the allowed role to Maintainers and above.
+You can also raise the minimum role to the recommended [Owner only, or no one](https://docs.gitlab.com/ee/ci/variables/#set-a-minimum-role-for-pipeline-variables).
+Starting in 17.7, this will be the default for all new projects in new namespaces on GitLab.com.
+We also plan to make this easier to manage by adding an option to control this from the project settings UI.
+
+</div>
+
 <div class="deprecation breaking-change" data-milestone="18.0">
 
 ### Limited `scan` actions in a scan execution policy
@@ -527,6 +625,22 @@ With the introduction of [GitLab CI/CD components for self-managed users](https:
 we are removing the redundant OpenTofu CI/CD templates in favor of the CI/CD components.
 
 For information about migrating from the CI/CD template to the component, see the [OpenTofu component documentation](https://gitlab.com/components/opentofu#usage-on-self-managed).
+
+</div>
+
+<div class="deprecation breaking-change" data-milestone="18.0">
+
+### Pipeline job limits extended to the Commits API
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.7</span>
+- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/436361).
+
+</div>
+
+Starting in GitLab 18.0, the maximum [number of jobs in active pipelines](https://docs.gitlab.com/ee/administration/instance_limits.html#number-of-jobs-in-active-pipelines) will also apply when creating jobs using the [Commits API](https://docs.gitlab.com/ee/api/commits.html#set-the-pipeline-status-of-a-commit). Review your integration to ensure it stays within the configured job limits.
 
 </div>
 
@@ -819,6 +933,30 @@ Occurrences of the `active` identifier in the GitLab GraphQL API endpoints will 
 - The `CiRunner` property.
 - The `RunnerUpdateInput` input type for the `runnerUpdate` mutation.
 - The `runners`, `Group.runners`, and `Project.runners` queries.
+
+</div>
+
+<div class="deprecation breaking-change" data-milestone="18.0">
+
+### RunnersRegistrationTokenReset GraphQL mutation is deprecated
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.7</span>
+- Removal in GitLab <span class="milestone">18.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/505703).
+
+</div>
+
+The support for runner registration tokens is deprecated. Consequently, the support for resetting a registration token has also been deprecated
+and will be removed in GitLab 18.0.
+
+A new method to bind runners to a GitLab instance has been implemented
+as part of the new [GitLab Runner token architecture](https://docs.gitlab.com/ee/ci/runners/new_creation_workflow.html).
+For details, see [epic 7633](https://gitlab.com/groups/gitlab-org/-/epics/7633).
+This new architecture introduces a new method for registering runners and eliminates the legacy
+[runner registration token](https://docs.gitlab.com/ee/security/token_overview.html#runner-registration-tokens).
+In GitLab 18.0, only the runner registration methods implemented in the new GitLab Runner token architecture will be supported.
 
 </div>
 
@@ -1150,6 +1288,130 @@ We encourage GitLab administrators to switch to the webhook delivery method for
 
 [Issue 393157](https://gitlab.com/gitlab-org/gitlab/-/issues/393157) tracks improving email ingestion in general.
 We hope this will simplify infrastructure setup and add several improvements to how you manage GitLab in the near future.
+
+</div>
+</div>
+
+<div class="milestone-wrapper" data-milestone="17.9">
+
+## GitLab 17.9
+
+<div class="deprecation " data-milestone="17.9">
+
+### Support for openSUSE Leap 15.5
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.6</span>
+- Removal in GitLab <span class="milestone">17.9</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/8778).
+
+</div>
+
+Long term service and support (LTSS) for [openSUSE Leap ends in December 2024](https://en.opensuse.org/Lifetime#openSUSE_Leap).
+
+Therefore, we will longer support the openSUSE Leap 15.5 distribution for Linux package installs. Users should upgrade to
+openSUSE Leap 15.6 for continued support.
+
+</div>
+</div>
+
+<div class="milestone-wrapper" data-milestone="17.8">
+
+## GitLab 17.8
+
+<div class="deprecation " data-milestone="17.8">
+
+### Support for CentOS 7
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.6</span>
+- Removal in GitLab <span class="milestone">17.8</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/8714).
+
+</div>
+
+Long term service and support (LTSS) for [CentOS 7 ended in June 2024](https://www.redhat.com/en/topics/linux/centos-linux-eol).
+
+Therefore, we will longer support the CentOS 7 distribution for Linux package installs. Users should upgrade to
+another operating system for continued support.
+
+</div>
+
+<div class="deprecation " data-milestone="17.8">
+
+### Support for Oracle Linux 7
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.6</span>
+- Removal in GitLab <span class="milestone">17.8</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/8746).
+
+</div>
+
+Long term service and support (LTSS) for [Oracle Linux 7 ends in December 2024](https://wiki.debian.org/LTS).
+
+Therefore, we will longer support the Oracle Linux 7 distribution for Linux package installs. Users should upgrade to
+Oracle Linux 8 for continued support.
+
+</div>
+
+<div class="deprecation " data-milestone="17.8">
+
+### Support for Raspberry Pi OS Buster
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.6</span>
+- Removal in GitLab <span class="milestone">17.8</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/8734).
+
+</div>
+
+Long term service and support (LTSS) for Raspberry Pi OS Buster (formerly known as Raspbian Buster) ended in June 2024.
+
+Therefore, we will longer support the PiOS Buster distribution for Linux package installs. Users should upgrade to
+PiOS Bullseye for continued support.
+
+</div>
+
+<div class="deprecation " data-milestone="17.8">
+
+### Support for Red Hat Enterprise Linux 7
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.6</span>
+- Removal in GitLab <span class="milestone">17.8</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/8714).
+
+</div>
+
+Red Hat Enterprise Linux (RHEL) 7 reached [end of maintenance support in June 2024](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux/rhel-7-end-of-maintenance).
+
+Therefore, we will longer publish Linux packages for RHEL 7 and RHEL 7 compatible operating systems.
+Users should upgrade to RHEL 8 for continued support.
+
+</div>
+
+<div class="deprecation " data-milestone="17.8">
+
+### Support for Scientific Linux 7
+
+<div class="deprecation-notes">
+
+- Announced in GitLab <span class="milestone">17.6</span>
+- Removal in GitLab <span class="milestone">17.8</span>
+- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/omnibus-gitlab/-/issues/8745).
+
+</div>
+
+Long term service and support (LTSS) for [Scientific Linux 7 ended in June 2024](https://scientificlinux.org/downloads/sl-versions/sl7/).
+
+Therefore, we will longer support the Scientific Linux distribution for Linux package installs. Users should upgrade to
+another RHEL-compatible operating system.
 
 </div>
 </div>
@@ -3639,32 +3901,6 @@ These two variables will be removed in GitLab 16.0.
 With the new browser-based DAST analyzer GA in GitLab 15.7, we are working towards making it the default DAST analyzer at some point in the future. In preparation for this, the following legacy DAST variables are being deprecated and scheduled for removal in GitLab 16.0: `DAST_HTML_REPORT`, `DAST_XML_REPORT`, and `DAST_MARKDOWN_REPORT`. These reports relied on the legacy DAST analyzer and we do not plan to implement them in the new browser-based analyzer. As of GitLab 16.0, these report artifacts will no longer be generated.
 
 These three variables will be removed in GitLab 16.0.
-
-</div>
-
-<div class="deprecation breaking-change" data-milestone="16.0">
-
-### Default CI/CD job token (`CI_JOB_TOKEN`) scope changed
-
-<div class="deprecation-notes">
-
-- Announced in GitLab <span class="milestone">15.9</span>
-- Removal in GitLab <span class="milestone">16.0</span> ([breaking change](https://docs.gitlab.com/ee/update/terminology.html#breaking-change))
-- To discuss this change or learn more, see the [deprecation issue](https://gitlab.com/gitlab-org/gitlab/-/issues/395708).
-
-</div>
-
-In GitLab 14.4 we introduced the ability to [limit your project's CI/CD job token](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#limit-your-projects-job-token-access) (`CI_JOB_TOKEN`) access to make it more secure. You can prevent job tokens **from your project's** pipelines from being used to **access other projects**. When enabled with no other configuration, your pipelines cannot access other projects. To use the job token to access other projects from your pipeline, you must list those projects explicitly in the **Limit CI_JOB_TOKEN access** setting's allowlist, and you must be a maintainer in all the projects.
-
-The job token functionality was updated in 15.9 with a better security setting to [allow access to your project with a job token](https://docs.gitlab.com/ee/ci/jobs/ci_job_token.html#add-a-group-or-project-to-the-job-token-allowlist). When enabled with no other configuration, job tokens **from other projects** cannot **access your project**. Similar to the older setting, you can optionally allow other projects to access your project with a job token if you list those projects explicitly in the **Allow access to this project with a CI_JOB_TOKEN** setting's allowlist. With this new setting, you must be a maintainer in your own project, but only need to have the Guest role in the other projects.
-
-As a result, the **Limit** setting is deprecated in preference of the better **Allow access** setting. In GitLab 16.0 the **Limit** setting will be disabled by default for all new projects. In projects with this setting currently enabled, it will continue to function as expected, but you will not be able to add any more projects to the allowlist. If the setting is disabled in any project, it will not be possible to re-enable this setting in 16.0 or later.
-
-In 18.0, we plan to remove the **Limit** setting completely, and set the **Allow access** setting to enabled for all projects. This change ensures a higher level of security between projects. If you currently use the **Limit** setting, you should update your projects to use the **Allow access** setting instead. If other projects access your project with a job token, you must add them to the **Allow access** allowlist.
-
-To prepare for this change, users on GitLab.com or self-managed GitLab 15.9 or later can enable the **Allow access** setting now and add the other projects. It will not be possible to disable the setting in 18.0 or later.
-
-In 16.3, the names of these settings were changed to clarify their meanings: the deprecated **Limit CI_JOB_TOKEN access** setting is now called **Limit access _from_ this project**, and the newer **Allow access to this project with a CI_JOB_TOKEN** setting is now called **Limit access _to_ this project**.
 
 </div>
 

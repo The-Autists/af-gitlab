@@ -321,8 +321,6 @@
   - 1
 - - elastic_full_index
   - 1
-- - elastic_indexing_control
-  - 1
 - - elastic_namespace_indexer
   - 1
 - - elastic_namespace_rollout
@@ -342,6 +340,8 @@
 - - environments_auto_stop
   - 1
 - - environments_canary_ingress_update
+  - 1
+- - environments_recalculate_auto_stop
   - 1
 - - environments_stop_job_failed
   - 1
@@ -790,6 +790,8 @@
 - - search_zoekt_update_index_used_bytes
   - 1
 - - secrets_management_provision_project_secrets_manager
+  - 1
+- - security_configuration_set_group_secret_push_protection
   - 1
 - - security_create_security_policy_project
   - 1

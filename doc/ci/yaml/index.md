@@ -701,6 +701,10 @@ and the pipeline is for either:
 
 - If your rules match both branch pipelines (other than the default branch) and merge request pipelines,
   [duplicate pipelines](../jobs/job_rules.md#avoid-duplicate-pipelines) can occur.
+- `start_in`, `allow_failure`, and `needs` are not supported in `workflow:rules`,
+  but do not cause a syntax violation. Though they have no effect, do not use them
+  in `workflow:rules` as it could cause syntax failures in the future. See
+  [issue 436473](https://gitlab.com/gitlab-org/gitlab/-/issues/436473) for more details.
 
 **Related topics**:
 
@@ -1544,7 +1548,7 @@ rspec:
 
 - Combining reports in parent pipelines using [artifacts from child pipelines](#needspipelinejob) is
   not supported. Track progress on adding support in [this issue](https://gitlab.com/gitlab-org/gitlab/-/issues/215725).
-- To be able to browse the report output files, include the [`artifacts:paths`](#artifactspaths) keyword. This uploads and stores the artifact twice.
+- To be able to browse and download the report output files, include the [`artifacts:paths`](#artifactspaths) keyword. This uploads and stores the artifact twice.
 - Artifacts created for `artifacts: reports` are always uploaded, regardless of the job results (success or failure).
   You can use [`artifacts:expire_in`](#artifactsexpire_in) to set an expiration
   date for the artifacts.
@@ -2311,6 +2315,7 @@ stop_review_app:
 #### `environment:auto_stop_in`
 
 > - CI/CD variable support [introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/365140) in GitLab 15.4.
+> - [Updated](https://gitlab.com/gitlab-org/gitlab/-/issues/437133) to support `prepare`, `access` and `verify` environment actions in GitLab 17.7.
 
 The `auto_stop_in` keyword specifies the lifetime of the environment. When an environment expires, GitLab
 automatically stops it.
@@ -2339,6 +2344,10 @@ review_app:
 
 When the environment for `review_app` is created, the environment's lifetime is set to `1 day`.
 Every time the review app is deployed, that lifetime is also reset to `1 day`.
+
+The `auto_stop_in` keyword can be used for all [environment actions](#environmentaction) except `stop`.
+Some actions can be used to reset the scheduled stop time for the environment. For more information, see
+[Access an environment for preparation or verification purposes](../../ci/environments/index.md#access-an-environment-for-preparation-or-verification-purposes).
 
 **Related topics**:
 
@@ -2451,18 +2460,16 @@ and is a little more flexible and readable.
 
 ```yaml
 .tests:
-  script: rake test
   stage: test
-  only:
-    refs:
-      - branches
+  image: ruby:3.0
 
 rspec:
   extends: .tests
   script: rake rspec
-  only:
-    variables:
-      - $RSPEC
+
+rubocop:
+  extends: .tests
+  script: bundle exec rubocop
 ```
 
 In this example, the `rspec` job uses the configuration from the `.tests` template job.
@@ -2472,17 +2479,18 @@ When creating the pipeline, GitLab:
 - Merges the `.tests` content with the `rspec` job.
 - Doesn't merge the values of the keys.
 
-The result is this `rspec` job:
+The combined configuration is equivalent to these jobs:
 
 ```yaml
 rspec:
-  script: rake rspec
   stage: test
-  only:
-    refs:
-      - branches
-    variables:
-      - $RSPEC
+  image: ruby:3.0
+  script: rake rspec
+
+rubocop:
+  stage: test
+  image: ruby:3.0
+  script: bundle exec rubocop
 ```
 
 **Additional details**:
@@ -2554,10 +2562,10 @@ DETAILS:
 **Offering:** GitLab.com
 **Status:** Beta
 
-> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/142054) in GitLab 16.9 [with a flag](../../administration/feature_flags.md) named `google_cloud_support_feature_flag`. This feature is in [beta](../../policy/experiment-beta-support.md).
+> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/142054) in GitLab 16.9 [with a flag](../../administration/feature_flags.md) named `google_cloud_support_feature_flag`. This feature is in [beta](../../policy/development_stages_support.md).
 > - [Enabled on GitLab.com](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/150472) in GitLab 17.1. Feature flag `google_cloud_support_feature_flag` removed.
 
-This feature is in [beta](../../policy/experiment-beta-support.md).
+This feature is in [beta](../../policy/development_stages_support.md).
 
 Use `identity` to authenticate with third party services using identity federation.
 
@@ -3468,7 +3476,7 @@ DETAILS:
 **Offering:** GitLab.com, Self-managed, GitLab Dedicated
 **Status:** Beta
 
-> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/129534) in GitLab 16.7 as an [experiment](../../policy/experiment-beta-support.md) [with a flag](../../user/feature_flags.md) named `pages_multiple_versions_setting`, disabled by default.
+> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/129534) in GitLab 16.7 as an [experiment](../../policy/development_stages_support.md) [with a flag](../../user/feature_flags.md) named `pages_multiple_versions_setting`, disabled by default.
 > - [Enabled on GitLab.com, self-managed, and GitLab Dedicated](https://gitlab.com/gitlab-org/gitlab/-/issues/422145) in GitLab 17.4.
 
 FLAG:
@@ -4254,8 +4262,6 @@ In this example:
 - You can use the `$` character for both variables and paths. For example, if the
   `$VAR` variable exists, its value is used. If it does not exist, the `$` is interpreted
   as being part of a path.
-- You cannot use [nested variables](../variables/where_variables_can_be_used.md#nested-variable-expansion)
-  with `changes`. See [issue 425803](hhttps://gitlab.com/gitlab-org/gitlab/-/issues/425803) for more details.
 
 **Related topics**:
 
@@ -4380,11 +4386,6 @@ In this example:
 
 **Additional details**:
 
-- CI/CD variables used with `rules:exists` have some limitations:
-  - You cannot use [nested variables](../variables/where_variables_can_be_used.md#nested-variable-expansion)
-    with `exists`. See [issue 411344](https://gitlab.com/gitlab-org/gitlab/-/issues/411344) for more details.
-  - In some cases you cannot use `/` or `./` in a CI/CD variable with `exists`.
-    See [issue 386595](https://gitlab.com/gitlab-org/gitlab/-/issues/386595) for more details.
 - Glob patterns are interpreted with Ruby's [`File.fnmatch`](https://docs.ruby-lang.org/en/master/File.html#method-c-fnmatch)
   with the [flags](https://docs.ruby-lang.org/en/master/File/Constants.html#module-File::Constants-label-Filename+Globbing+Constants+-28File-3A-3AFNM_-2A-29)
   `File::FNM_PATHNAME | File::FNM_DOTMATCH | File::FNM_EXTGLOB`.
@@ -5122,6 +5123,7 @@ job4:
 
 **Additional details**:
 
+- The stage name must be 255 characters or fewer.
 - Jobs can run in parallel if they run on different runners.
 - If you have only one runner, jobs can run in parallel if the runner's
   [`concurrent` setting](https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-global-section)
@@ -5778,7 +5780,7 @@ delete_job:
   script:
     - make delete
   when: manual
-  manual_confirmation: 'Are you sure you want to delete $CI_ENVIRONMENT_SLUG?'
+  manual_confirmation: 'Are you sure you want to delete this environment?'
 ```
 
 ## Deprecated keywords

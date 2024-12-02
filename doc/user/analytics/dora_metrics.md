@@ -94,7 +94,7 @@ The first step is to benchmark the CI/CD pipelines' efficiency between groups an
 - Using Value Stream Analytics to identify bottlenecks in the processes.
 - Breaking the changes down into smaller iterations.
 - Adding automation.
-- Improving the performance of your pipelines. 
+- Improving the performance of your pipelines.
 
 ## Time to restore service
 
@@ -118,7 +118,7 @@ The first step is to benchmark the team response and recover from service interr
 
 - Improving the observability into the production environment.
 - Improving response workflows.
-- Improving deployment frequency and lead time for changes so fixes can get into production more efficiently. 
+- Improving deployment frequency and lead time for changes so fixes can get into production more efficiently.
 
 ## Change failure rate
 
@@ -153,13 +153,13 @@ DETAILS:
 **Offering:** Self-managed
 **Status:** Experiment
 
-> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/96561) in GitLab 15.4 [with a flag](../../administration/feature_flags.md) named `dora_configuration`. Disabled by default. This feature is an [experiment](../../policy/experiment-beta-support.md).
+> - [Introduced](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/96561) in GitLab 15.4 [with a flag](../../administration/feature_flags.md) named `dora_configuration`. Disabled by default. This feature is an [experiment](../../policy/development_stages_support.md).
 
 FLAG:
-On self-managed GitLab, by default this feature is not available. To make it available per project or for your entire instance, an administrator can [enable the feature flag](../../administration/feature_flags.md) named `dora_configuration`.
-On GitLab.com and GitLab Dedicated, this feature is not available.
+The availability of this feature is controlled by a feature flag.
+For more information, see the history.
 
-This feature is an [experiment](../../policy/experiment-beta-support.md).
+This feature is an [experiment](../../policy/development_stages_support.md).
 To join the list of users testing this feature, [here is a suggested test flow](https://gitlab.com/gitlab-org/gitlab/-/merge_requests/96561#steps-to-check-on-localhost).
 If you find a bug, [open an issue here](https://gitlab.com/groups/gitlab-org/-/epics/11490).
 To share your use cases and feedback, comment in [epic 11490](https://gitlab.com/groups/gitlab-org/-/epics/11490).

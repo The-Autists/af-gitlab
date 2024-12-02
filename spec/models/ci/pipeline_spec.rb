@@ -167,6 +167,32 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep, feature_category: 
         end
       end
     end
+
+    describe '#limited_failed_builds' do
+      let_it_be(:pipeline) { create(:ci_pipeline) }
+
+      before do
+        stub_const("#{described_class}::COUNT_FAILED_JOBS_LIMIT", 3)
+      end
+
+      it 'returns the latest failed builds up to the limit for the pipeline' do
+        over_limit = described_class::COUNT_FAILED_JOBS_LIMIT + 1
+        create_list(:ci_build, over_limit, :failed, pipeline: pipeline)
+        create_list(:ci_build, over_limit, :success, pipeline: pipeline)
+
+        expect(pipeline.limited_failed_builds.count).to eq(described_class::COUNT_FAILED_JOBS_LIMIT)
+        expect(pipeline.limited_failed_builds).to all(be_failed)
+        expect(pipeline.limited_failed_builds).to all(have_attributes(pipeline: pipeline))
+      end
+
+      it 'does not include retried builds' do
+        retried_build = create(:ci_build, :failed, :retried, pipeline: pipeline)
+        latest_build = create(:ci_build, :failed, pipeline: pipeline)
+
+        expect(pipeline.limited_failed_builds).to include(latest_build)
+        expect(pipeline.limited_failed_builds).not_to include(retried_build)
+      end
+    end
   end
 
   describe 'state machine transitions' do
@@ -1822,7 +1848,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep, feature_category: 
 
     describe 'auto merge' do
       context 'when auto merge is enabled' do
-        let_it_be_with_reload(:merge_request) { create(:merge_request, :merge_when_pipeline_succeeds) }
+        let_it_be_with_reload(:merge_request) { create(:merge_request, :merge_when_checks_pass) }
         let_it_be_with_reload(:pipeline) do
           create(:ci_pipeline, :running,
             project: merge_request.source_project, ref: merge_request.source_branch, sha: merge_request.diff_head_sha)

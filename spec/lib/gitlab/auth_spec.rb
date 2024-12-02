@@ -1053,7 +1053,9 @@ RSpec.describe Gitlab::Auth, :use_clean_rails_memory_store_caching, feature_cate
   end
 
   describe '#build_access_token_check' do
-    subject { gl_auth.find_for_git_client('gitlab-ci-token', build.token, project: build.project, request: request) }
+    subject(:result) do
+      gl_auth.find_for_git_client('gitlab-ci-token', build.token, project: build.project, request: request)
+    end
 
     let_it_be(:user) { create(:user) }
 
@@ -1061,16 +1063,35 @@ RSpec.describe Gitlab::Auth, :use_clean_rails_memory_store_caching, feature_cate
       let!(:build) { create(:ci_build, :running, user: user) }
 
       it 'executes query using primary database' do
-        expect(Ci::Build).to receive(:find_by_token).with(build.token).and_wrap_original do |m, *args|
+        expect(::Ci::JobToken::Jwt).to receive(:decode).with(build.token).and_wrap_original do |m, *args|
           expect(::Gitlab::Database::LoadBalancing::SessionMap.current(Ci::Build.load_balancer).use_primary?)
-            .to eq(true)
+            .to be(true)
           m.call(*args)
         end
 
-        expect(subject).to be_a(Gitlab::Auth::Result)
-        expect(subject.actor).to eq(user)
-        expect(subject.project).to eq(build.project)
-        expect(subject.type).to eq(:build)
+        expect(result).to be_a(Gitlab::Auth::Result)
+        expect(result.actor).to eq(user)
+        expect(result.project).to eq(build.project)
+        expect(result.type).to eq(:build)
+      end
+
+      context 'with a database token' do
+        before do
+          stub_feature_flags(ci_job_token_jwt: false)
+        end
+
+        it 'executes query using primary database' do
+          expect(Ci::Build).to receive(:find_by_token).with(build.token).and_wrap_original do |m, *args|
+            expect(::Gitlab::Database::LoadBalancing::SessionMap.current(Ci::Build.load_balancer).use_primary?)
+              .to be(true)
+            m.call(*args)
+          end
+
+          expect(result).to be_a(Gitlab::Auth::Result)
+          expect(result.actor).to eq(user)
+          expect(result.project).to eq(build.project)
+          expect(result.type).to eq(:build)
+        end
       end
     end
   end

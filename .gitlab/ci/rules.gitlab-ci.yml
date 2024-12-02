@@ -108,6 +108,9 @@
 .if-merge-request-labels-run-observability-e2e-tests-current-branch: &if-merge-request-labels-run-observability-e2e-tests-current-branch
   if: '($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_EVENT_TYPE != "merge_train") && $CI_MERGE_REQUEST_LABELS =~ /pipeline:run-observability-e2e-tests-current-branch/'
 
+.if-merge-request-labels-skip-observability-e2e-tests: &if-merge-request-labels-skip-observability-e2e-tests
+  if: '($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_EVENT_TYPE != "merge_train") && $CI_MERGE_REQUEST_LABELS =~ /pipeline:skip-observability-e2e-tests/'
+
 .if-merge-request-labels-run-single-db: &if-merge-request-labels-run-single-db
   if: '($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_EVENT_TYPE != "merge_train") && $CI_MERGE_REQUEST_LABELS =~ /pipeline:run-single-db/'
 
@@ -291,11 +294,6 @@
   - "doc/**/*"
   - "scripts/lint-doc.sh"
   - "scripts/lint/check_mermaid.mjs"
-
-.docs-blueprints-patterns: &docs-blueprints-patterns
-  - "doc/architecture/blueprints/**/*"
-  - "scripts/lint-docs-blueprints.rb"
-  - ".gitlab/ci/docs.gitlab-ci.yml"
 
 .docs-deprecations-and-removals-patterns: &docs-deprecations-and-removals-patterns
   - "doc/update/deprecations.md"
@@ -668,7 +666,7 @@
   - "lib/gitlab/ci/templates/**/*.gitlab-ci.yml"
 
 .static-analysis-patterns: &static-analysis-patterns
-  - ".{codeclimate,haml-lint,haml-lint_todo}.yml"
+  - ".{haml-lint,haml-lint_todo}.yml"
 
 .rubocop-patterns: &rubocop-patterns
   - ".{rubocop,rubocop_todo}.yml"
@@ -1223,11 +1221,6 @@
     - <<: *if-default-refs
       changes: *docs-patterns
 
-.docs:rules:docs-blueprints-lint:
-  rules:
-    - <<: *if-default-refs
-      changes: *docs-blueprints-patterns
-
 .docs:rules:deprecations-and-removals:
   rules:
     - <<: *if-default-refs
@@ -1538,6 +1531,8 @@
   rules:
     - <<: *if-not-merge-request
       when: never
+    - <<: *if-security-merge-request
+      when: never
     - !reference [.frontend:rules:jest, rules]
 
 ################
@@ -1651,7 +1646,7 @@
     # Run tests automatically for MRs that touch Ruby version files
     - <<: *if-merge-request
       changes: *ruby-version-patterns
-     # Run tests automatically for MRs that touch GITALY_SERVER_VERSION
+    # Run tests automatically for MRs that touch GITALY_SERVER_VERSION
     - <<: *if-merge-request
       changes: *gitaly-patterns
     - <<: *if-merge-request
@@ -2694,6 +2689,8 @@
       when: never
     - if: '$DEPENDENCY_SCANNING_DISABLED || $GITLAB_FEATURES !~ /\bdependency_scanning\b/ || $DS_EXCLUDED_ANALYZERS =~ /gemnasium([^-]|$)/'
       when: never
+    # Run Dependency Scanning on master until https://gitlab.com/gitlab-org/gitlab/-/issues/504908#note_2218591981 is resolved
+    - <<: *if-default-branch-refs
     - <<: *if-default-refs
       changes: *dependency-patterns
 
@@ -2703,6 +2700,8 @@
       when: never
     - if: '$DEPENDENCY_SCANNING_DISABLED || $GITLAB_FEATURES !~ /\bdependency_scanning\b/ || $DS_EXCLUDED_ANALYZERS =~ /gemnasium-python/'
       when: never
+    # Run Dependency Scanning on master until https://gitlab.com/gitlab-org/gitlab/-/issues/504908#note_2218591981 is resolved
+    - <<: *if-default-branch-refs
     - <<: *if-default-refs
       changes: *python-patterns
 
@@ -3384,6 +3383,8 @@
   rules:
     - <<: *if-observability-skip-e2e-jobs
       when: never
+    - <<: *if-merge-request-labels-skip-observability-e2e-tests
+      when: never
     - <<: *if-merge-request-labels-run-observability-e2e-tests-current-branch
       when: never
     - <<: *if-merge-request-labels-run-observability-e2e-tests-main-branch
@@ -3393,6 +3394,8 @@
 .observability-backend-current-branch:rules:
   rules:
     - <<: *if-observability-skip-e2e-jobs
+      when: never
+    - <<: *if-merge-request-labels-skip-observability-e2e-tests
       when: never
     - <<: *if-merge-request-labels-run-observability-e2e-tests-main-branch
       when: never

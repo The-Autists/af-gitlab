@@ -18,7 +18,6 @@ class ApplicationSetting < ApplicationRecord
     encrypted_vertex_ai_access_token_iv
   ], remove_with: '17.5', remove_after: '2024-09-19'
   ignore_columns %i[toggle_security_policy_custom_ci lock_toggle_security_policy_custom_ci], remove_with: '17.6', remove_after: '2024-10-17'
-  ignore_column :runners_registration_token, remove_with: '17.7', remove_after: '2024-11-22'
 
   INSTANCE_REVIEW_MIN_USERS = 50
   GRAFANA_URL_ERROR_MESSAGE = 'Please check your Grafana URL setting in ' \
@@ -50,7 +49,7 @@ class ApplicationSetting < ApplicationRecord
   # We won't add a prefix here as this token is deprecated and being
   # disabled in 17.0
   # https://docs.gitlab.com/ee/ci/runners/new_creation_workflow.html
-  add_authentication_token_field :runners_registration_token, encrypted: :required # rubocop:disable Gitlab/TokenWithoutPrefix -- wontfix
+  add_authentication_token_field :runners_registration_token, encrypted: :required
   add_authentication_token_field :health_check_access_token # rubocop:todo -- https://gitlab.com/gitlab-org/gitlab/-/issues/376751
   add_authentication_token_field :static_objects_external_storage_auth_token, encrypted: :required # rubocop:todo -- https://gitlab.com/gitlab-org/gitlab/-/issues/439292
   add_authentication_token_field :error_tracking_access_token, encrypted: :required # rubocop:todo -- https://gitlab.com/gitlab-org/gitlab/-/issues/439292
@@ -500,6 +499,9 @@ class ApplicationSetting < ApplicationRecord
   validates :ci_jwt_signing_key,
     rsa_key: true, allow_nil: true
 
+  validates :ci_job_token_signing_key,
+    rsa_key: true, allow_nil: true
+
   validates :customers_dot_jwt_signing_key,
     rsa_key: true, allow_nil: true
 
@@ -515,6 +517,16 @@ class ApplicationSetting < ApplicationRecord
     length: { maximum: 255, message: N_('is too long (maximum is %{count} characters)') },
     allow_blank: true,
     public_url: ADDRESSABLE_URL_VALIDATION_OPTIONS
+
+  jsonb_accessor :integrations,
+    jira_connect_additional_audience_url: :string
+
+  validates :jira_connect_additional_audience_url,
+    length: { maximum: 255, message: N_('is too long (maximum is %{count} characters)') },
+    allow_blank: true,
+    public_url: ADDRESSABLE_URL_VALIDATION_OPTIONS
+
+  validates :integrations, json_schema: { filename: "application_setting_integrations" }
 
   with_options(presence: true, if: :slack_app_enabled?) do
     validates :slack_app_id
@@ -620,6 +632,9 @@ class ApplicationSetting < ApplicationRecord
       :users_get_by_id_limit
   end
 
+  attribute :resource_usage_limits, ::Gitlab::Database::Type::IndifferentJsonb.new, default: -> { {} }
+  validates :resource_usage_limits, json_schema: { filename: 'resource_usage_limits' }
+
   jsonb_accessor :rate_limits,
     concurrent_bitbucket_import_jobs_limit: [:integer, { default: 100 }],
     concurrent_bitbucket_server_import_jobs_limit: [:integer, { default: 100 }],
@@ -657,14 +672,15 @@ class ApplicationSetting < ApplicationRecord
 
   validates :sign_in_restrictions, json_schema: { filename: 'application_setting_sign_in_restrictions' }
 
+  jsonb_accessor :transactional_emails,
+    resource_access_token_notify_inherited: [:boolean, { default: false }],
+    lock_resource_access_token_notify_inherited: [:boolean, { default: false }]
+
+  validates :transactional_emails, json_schema: { filename: "application_setting_transactional_emails" }
+
   validates :rate_limits, json_schema: { filename: "application_setting_rate_limits" }
 
   validates :importers, json_schema: { filename: "application_setting_importers" }
-
-  jsonb_accessor :transactional_emails,
-    resource_token_expiry_inherited_members: [:boolean, { default: true }]
-
-  validates :transactional_emails, json_schema: { filename: "application_setting_transactional_emails" }
 
   jsonb_accessor :package_registry, nuget_skip_metadata_url_validation: [:boolean, { default: false }]
 
@@ -786,6 +802,7 @@ class ApplicationSetting < ApplicationRecord
   attr_encrypted :slack_app_signing_secret, encryption_options_base_32_aes_256_gcm.merge(encode: false, encode_iv: false)
   attr_encrypted :slack_app_verification_token, encryption_options_base_32_aes_256_gcm
   attr_encrypted :ci_jwt_signing_key, encryption_options_base_32_aes_256_gcm
+  attr_encrypted :ci_job_token_signing_key, encryption_options_base_32_aes_256_gcm.merge(encode: false, encode_iv: false)
   attr_encrypted :customers_dot_jwt_signing_key, encryption_options_base_32_aes_256_gcm
   attr_encrypted :secret_detection_token_revocation_token, encryption_options_base_32_aes_256_gcm
   attr_encrypted :cloud_license_auth_token, encryption_options_base_32_aes_256_gcm
@@ -801,6 +818,7 @@ class ApplicationSetting < ApplicationRecord
   attr_encrypted :telesign_customer_xid, encryption_options_base_32_aes_256_gcm.merge(encode: false, encode_iv: false)
   attr_encrypted :telesign_api_key, encryption_options_base_32_aes_256_gcm.merge(encode: false, encode_iv: false)
   attr_encrypted :product_analytics_configurator_connection_string, encryption_options_base_32_aes_256_gcm.merge(encode: false, encode_iv: false)
+  attr_encrypted :secret_detection_service_auth_token, encryption_options_base_32_aes_256_gcm.merge(encode: false, encode_iv: false)
 
   # Restricting the validation to `on: :update` only to avoid cyclical dependencies with
   # License <--> ApplicationSetting. This method calls a license check when we create
@@ -837,6 +855,10 @@ class ApplicationSetting < ApplicationRecord
 
   validates :require_admin_two_factor_authentication,
     inclusion: { in: [true, false], message: N_('must be a boolean value') }
+
+  validates :secret_detection_service_url,
+    allow_blank: true,
+    length: { maximum: 255 }
 
   before_validation :ensure_uuid!
   before_validation :coerce_repository_storages_weighted, if: :repository_storages_weighted_changed?
@@ -989,7 +1011,7 @@ class ApplicationSetting < ApplicationRecord
       kroki_url, schemes: %w[http https],
       enforce_sanitization: true,
       deny_all_requests_except_allowed: Gitlab::CurrentSettings.deny_all_requests_except_allowed?,
-      outbound_local_requests_allowlist: Gitlab::CurrentSettings.outbound_local_requests_whitelist)[0] # rubocop:disable Naming/InclusiveLanguage -- existing setting
+      outbound_local_requests_allowlist: Gitlab::CurrentSettings.outbound_local_requests_whitelist)[0]
   rescue Gitlab::HTTP_V2::UrlBlocker::BlockedUrlError => e
     self.errors.add(
       :kroki_url,

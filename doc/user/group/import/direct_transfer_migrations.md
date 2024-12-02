@@ -70,7 +70,7 @@ GitLab 16.8.
   - For [a whole instance](../../../administration/settings/visibility_and_access_controls.md#define-which-roles-can-create-projects).
   - For [specific groups](../index.md#specify-who-can-add-projects-to-a-group).
 
-## User contributions and membership mapping
+## User contribution and membership mapping
 
 DETAILS:
 **Offering:** Self-managed, GitLab Dedicated
@@ -80,11 +80,11 @@ DETAILS:
 > - Full support for mapping inherited membership [introduced](https://gitlab.com/gitlab-org/gitlab/-/issues/458834) in GitLab 17.1.
 > - Removed from GitLab.com direct transfer migrations in GitLab 17.5 in favor of [the alternative](../../project/import/index.md#user-contribution-and-membership-mapping).
 
-This method of user contributions and membership mapping is available for
+This method of user contribution and membership mapping is available for
 GitLab self-managed without enabled feature flags.
 For information on the other method available for GitLab self-managed
 with enabled feature flags and for GitLab.com,
-see [User contribution and membership mapping](../../project/import/index.md#user-contribution-and-membership-mapping).
+see [user contribution and membership mapping](../../project/import/index.md#user-contribution-and-membership-mapping).
 
 Users are never created during a migration. Instead, contributions and membership of users on the source instance are
 mapped to users on the destination instance. The type of mapping of a user's membership depends on the
@@ -153,7 +153,7 @@ If you do not want to import all user memberships from the source instance, ensu
 1. After a group has been imported, select its GitLab path to open its GitLab URL.
 
 WARNING:
-Importing groups with projects is in [beta](../../../policy/experiment-beta-support.md#beta). This feature is not ready for production use.
+Importing groups with projects is in [beta](../../../policy/development_stages_support.md#beta). This feature is not ready for production use.
 
 ## Group import history
 

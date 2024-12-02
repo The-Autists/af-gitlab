@@ -15,6 +15,7 @@ RSpec.describe SemgrepResultProcessor, feature_category: :tooling do
     stub_env('CI_API_V4_URL', 'https://gitlab.com/api/v4')
     stub_env('CI_MERGE_REQUEST_PROJECT_ID', '1234')
     stub_env('CI_MERGE_REQUEST_IID', '1234')
+    stub_env('CI_MERGE_REQUEST_LABELS', '')
     stub_env('CUSTOM_SAST_RULES_BOT_PAT', 'gl-pat-123')
     stub_env('BOT_USER_ID', '21564538')
     stub_request(:any, /gitlab.com/).to_return(status: 400)
@@ -52,6 +53,50 @@ RSpec.describe SemgrepResultProcessor, feature_category: :tooling do
       allow(processor).to receive(:perform_allowlist_check).and_raise(StandardError, 'Error message here')
 
       expect { processor.execute }.to raise_error(SystemExit)
+    end
+
+    context 'when CI_MERGE_REQUEST_LABELS includes appsec-sast::stop' do
+      it "prints the 'not adding comments' message" do
+        stub_env('CI_MERGE_REQUEST_LABELS', 'appsec-sast::stop')
+
+        expect(processor).to receive(:perform_allowlist_check)
+        expect(processor).to receive(:get_sast_results)
+        expect(processor).to receive(:filter_duplicate_findings).with(sample_results)
+
+        expect do
+          processor.execute
+        end.to output(/Not adding comments for this MR as it has the appsec-sast::stop label/).to_stdout
+      end
+    end
+  end
+
+  describe '#sast_stop_label_present?' do
+    context 'when CI_MERGE_REQUEST_LABELS includes appsec-sast::stop' do
+      it 'returns true' do
+        stub_env('CI_MERGE_REQUEST_LABELS', 'appsec-sast::stop, other-label')
+        expect(processor.sast_stop_label_present?).to be true
+      end
+    end
+
+    context 'when CI_MERGE_REQUEST_LABELS does not include appsec-sast::stop' do
+      it 'returns false' do
+        stub_env('CI_MERGE_REQUEST_LABELS', 'another-label, different-label')
+        expect(processor.sast_stop_label_present?).to be false
+      end
+    end
+
+    context 'when CI_MERGE_REQUEST_LABELS is empty' do
+      it 'returns false' do
+        stub_env('CI_MERGE_REQUEST_LABELS', '')
+        expect(processor.sast_stop_label_present?).to be false
+      end
+    end
+
+    context 'when CI_MERGE_REQUEST_LABELS is nil' do
+      it 'returns false' do
+        stub_env('CI_MERGE_REQUEST_LABELS', nil)
+        expect(processor.sast_stop_label_present?).to be false
+      end
     end
   end
 

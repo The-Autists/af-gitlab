@@ -114,85 +114,16 @@ module API
             chat_notification_channels
           ].flatten,
           'drone-ci' => ::Integrations::DroneCi.api_arguments,
-          'emails-on-push' => [
-            {
-              required: true,
-              name: :recipients,
-              type: String,
-              desc: 'Comma-separated list of recipient email addresses'
-            },
-            {
-              required: false,
-              name: :disable_diffs,
-              type: ::Grape::API::Boolean,
-              desc: 'Disable code diffs'
-            },
-            {
-              required: false,
-              name: :send_from_committer_email,
-              type: ::Grape::API::Boolean,
-              desc: 'Send from committer'
-            },
-            {
-              required: false,
-              name: :branches_to_be_notified,
-              type: String,
-              desc: 'Branches for which notifications are to be sent'
-            }
-          ],
+          'emails-on-push' => ::Integrations::EmailsOnPush.api_arguments,
           'external-wiki' => ::Integrations::ExternalWiki.api_arguments,
           'gitlab-slack-application' => [
             ::Integrations::GitlabSlackApplication.api_arguments,
             chat_notification_channels
           ].flatten,
           'google-play' => ::Integrations::GooglePlay.api_arguments,
-          'hangouts-chat' => [
-            {
-              required: true,
-              name: :webhook,
-              type: String,
-              desc: 'The Hangouts Chat webhook. e.g. https://chat.googleapis.com/v1/spaces…'
-            },
-            {
-              required: false,
-              name: :branches_to_be_notified,
-              type: String,
-              desc: 'Branches for which notifications are to be sent'
-            }
-          ].flatten,
+          'hangouts-chat' => ::Integrations::HangoutsChat.api_arguments,
           'harbor' => ::Integrations::Harbor.api_arguments,
-          'irker' => [
-            {
-              required: true,
-              name: :recipients,
-              type: String,
-              desc: 'Recipients/channels separated by whitespaces'
-            },
-            {
-              required: false,
-              name: :default_irc_uri,
-              type: String,
-              desc: 'Default: irc://irc.network.net:6697'
-            },
-            {
-              required: false,
-              name: :server_host,
-              type: String,
-              desc: 'Server host. Default localhost'
-            },
-            {
-              required: false,
-              name: :server_port,
-              type: Integer,
-              desc: 'Server port. Default 6659'
-            },
-            {
-              required: false,
-              name: :colorize_messages,
-              type: ::Grape::API::Boolean,
-              desc: 'Colorize messages'
-            }
-          ],
+          'irker' => ::Integrations::Irker.api_arguments,
           'jenkins' => ::Integrations::Jenkins.api_arguments,
           'jira' => [
             {
@@ -271,34 +202,8 @@ module API
           'jira-cloud-app' => ::Integrations::JiraCloudApp.api_arguments,
           'matrix' => ::Integrations::Matrix.api_arguments,
           'mattermost-slash-commands' => ::Integrations::MattermostSlashCommands.api_arguments,
-          'slack-slash-commands' => [
-            {
-              required: true,
-              name: :token,
-              type: String,
-              desc: 'The Slack token'
-            }
-          ],
-          'packagist' => [
-            {
-              required: true,
-              name: :username,
-              type: String,
-              desc: 'The username'
-            },
-            {
-              required: true,
-              name: :token,
-              type: String,
-              desc: 'The Packagist API token'
-            },
-            {
-              required: false,
-              name: :server,
-              type: String,
-              desc: 'The server'
-            }
-          ],
+          'slack-slash-commands' => ::Integrations::SlackSlashCommands.api_arguments,
+          'packagist' => ::Integrations::Packagist.api_arguments,
           'phorge' => ::Integrations::Phorge.api_arguments,
           'pipelines-email' => [
             {
@@ -466,14 +371,7 @@ module API
             }
           ],
           'telegram' => ::Integrations::Telegram.api_arguments,
-          'unify-circuit' => [
-            {
-              required: true,
-              name: :webhook,
-              type: String,
-              desc: 'The Unify Circuit webhook. e.g. https://circuit.com/rest/v2/webhooks/incoming/…'
-            }
-          ].flatten,
+          'unify-circuit' => ::Integrations::UnifyCircuit.api_arguments,
           'webex-teams' => ::Integrations::WebexTeams.api_arguments,
           'zentao' => [
             {

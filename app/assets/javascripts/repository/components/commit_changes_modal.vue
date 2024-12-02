@@ -1,5 +1,6 @@
 <script>
 import {
+  GlAlert,
   GlModal,
   GlFormCheckbox,
   GlFormGroup,
@@ -25,6 +26,7 @@ import {
 export default {
   csrf,
   components: {
+    GlAlert,
     GlModal,
     GlFormCheckbox,
     GlFormGroup,
@@ -38,8 +40,14 @@ export default {
   },
   i18n: {
     BRANCH: __('Branch'),
+    BRANCH_IN_FORK_MESSAGE: __(
+      'GitLab will create a branch in your fork and start a merge request.',
+    ),
     CURRENT_BRANCH_LABEL: __('Commit to the current %{branchName} branch'),
     COMMIT_CHANGES: __('Commit changes'),
+    COMMIT_IN_BRANCH_MESSAGE: __(
+      'Your changes can be committed to %{branchName} because a merge request is open.',
+    ),
     COMMIT_LABEL,
     COMMIT_MESSAGE_HINT: __(
       'Try to keep the first line under 52 characters and the others under 72.',
@@ -62,10 +70,6 @@ export default {
   },
   props: {
     modalId: {
-      type: String,
-      required: true,
-    },
-    deletePath: {
       type: String,
       required: true,
     },
@@ -98,6 +102,15 @@ export default {
       required: false,
       default: false,
     },
+    branchAllowsCollaboration: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    handleFormSubmit: {
+      type: Function,
+      required: true,
+    },
   },
   data() {
     const form = {
@@ -107,9 +120,9 @@ export default {
         // fields key must match case of form name for validation directive to work
         commit_message: initFormField({ value: this.commitMessage }),
         branch_name: initFormField({
-          value: this.canPushToBranch ? this.originalBranch : '',
+          value: this.targetBranch,
           // Branch name is pre-filled with the current branch name in two scenarios and therefore doesn't need validation:
-          // 1. When the user doesn't have permission to push to the repo (e.g., guest user)
+          // 1. When the user doesn't have permission to push to the repo (e.g. guest user)
           // 2. When the user can push directly to the current branch
           skipValidation: !this.canPushCode || this.canPushToBranch,
         }),
@@ -174,7 +187,7 @@ export default {
         ? this.$options.i18n.LFS_WARNING_TITLE
         : this.$options.i18n.COMMIT_CHANGES;
     },
-    showDeleteForm() {
+    showForm() {
       return !this.isUsingLfs || (this.isUsingLfs && this.lfsWarningDismissed);
     },
   },
@@ -224,7 +237,15 @@ export default {
 
       this.loading = true;
       this.form.showValidation = false;
-      this.$refs.form.$el.submit();
+
+      const form = this.$refs.form.$el;
+      const formData = new FormData(form);
+
+      try {
+        this.handleFormSubmit(formData);
+      } finally {
+        this.loading = false;
+      }
     },
   },
   deleteLfsHelpPath: helpPagePath('topics/git/lfs', {
@@ -243,6 +264,7 @@ export default {
     :action-cancel="cancelOptions"
     @primary="handlePrimaryAction"
   >
+    <slot name="body"></slot>
     <div v-if="showLfsWarning">
       <p>
         <gl-sprintf :message="$options.i18n.LFS_WARNING_PRIMARY_CONTENT">
@@ -260,10 +282,10 @@ export default {
         </gl-sprintf>
       </p>
     </div>
-    <div v-if="showDeleteForm">
-      <gl-form ref="form" novalidate :action="deletePath" method="post">
-        <input type="hidden" name="_method" value="delete" />
+    <div v-if="showForm">
+      <gl-form ref="form" novalidate>
         <input :value="$options.csrf.token" type="hidden" name="authenticity_token" />
+        <slot name="form-fields"></slot>
         <template v-if="emptyRepo">
           <input type="hidden" name="branch_name" :value="originalBranch" class="js-branch-name" />
         </template>
@@ -333,10 +355,11 @@ export default {
             </template>
 
             <template v-else>
-              <span>
+              <label for="branchNameInput">
                 {{ $options.i18n.NEW_BRANCH_LABEl }}
-              </span>
+              </label>
               <gl-form-input
+                id="branchNameInput"
                 v-model="form.fields['branch_name'].value"
                 v-validation:[form.showValidation]
                 :state="form.fields['branch_name'].state"
@@ -353,6 +376,18 @@ export default {
               </gl-form-checkbox>
             </template>
           </gl-form-group>
+          <template v-else>
+            <gl-alert v-if="branchAllowsCollaboration" :dismissible="false" class="gl-my-3">
+              <gl-sprintf :message="$options.i18n.COMMIT_IN_BRANCH_MESSAGE">
+                <template #branchName
+                  ><strong>{{ originalBranch }}</strong>
+                </template>
+              </gl-sprintf></gl-alert
+            >
+            <gl-alert v-else :dismissible="false" class="gl-my-3">{{
+              $options.i18n.BRANCH_IN_FORK_MESSAGE
+            }}</gl-alert>
+          </template>
         </template>
       </gl-form>
     </div>

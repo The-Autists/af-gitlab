@@ -250,6 +250,8 @@ RSpec.describe 'Database schema',
       instance_integrations: %w[project_id group_id inherit_from_id], # these columns are not used in instance integrations
       group_scim_identities: %w[temp_source_id], # temporary column that is not a foreign key
       group_scim_auth_access_tokens: %w[temp_source_id], # temporary column that is not a foreign key
+      system_access_group_microsoft_graph_access_tokens: %w[temp_source_id], # temporary column that is not a foreign key
+      system_access_group_microsoft_applications: %w[temp_source_id], # temporary column that is not a foreign key
       subscription_user_add_on_assignment_versions: %w[item_id user_id purchase_id] # Managed by paper_trail gem, no need for FK on the historical data
     }.with_indifferent_access.freeze
   end
@@ -430,7 +432,7 @@ RSpec.describe 'Database schema',
       }.freeze
     end
 
-    it 'uses json schema validator', :eager_load do
+    it 'uses json schema validator', :eager_load, quarantine: 'https://gitlab.com/gitlab-org/gitlab/-/issues/500903' do
       columns_name_with_jsonb.each do |hash|
         next if models_by_table_name[hash["table_name"]].nil?
 

@@ -161,6 +161,7 @@ RSpec.describe NamespaceSetting, feature_category: :groups_and_projects, type: :
         expect(namespace_settings).to validate_numericality_of(:remove_dormant_members_period)
           .only_integer
           .is_greater_than_or_equal_to(90)
+          .is_less_than_or_equal_to(1827)
       end
     end
   end
@@ -438,6 +439,10 @@ RSpec.describe NamespaceSetting, feature_category: :groups_and_projects, type: :
 
   describe '#math_rendering_limits_enabled' do
     it_behaves_like 'a cascading namespace setting boolean attribute', settings_attribute_name: :math_rendering_limits_enabled
+  end
+
+  describe '#resource_access_token_notify_inherited' do
+    it_behaves_like 'a cascading namespace setting boolean attribute', settings_attribute_name: :resource_access_token_notify_inherited
   end
 
   describe 'default_branch_protection_defaults' do

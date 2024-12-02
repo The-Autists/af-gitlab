@@ -30,7 +30,9 @@ module Ci
     attr_reader :token
 
     def find_job_by_token
-      ::Ci::Build.find_by_token(token)
+      jwt = ::Ci::JobToken::Jwt.decode(token)
+      # TODO: Remove fallback finder when feature flag `ci_job_token_jwt` is removed
+      jwt&.subject || ::Ci::Build.find_by_token(token)
     end
 
     def validate_job!(job)

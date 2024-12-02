@@ -2312,17 +2312,9 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
   describe "#auto_merge_strategy" do
     subject { merge_request.auto_merge_strategy }
 
-    let(:merge_request) { create(:merge_request, :merge_when_pipeline_succeeds) }
+    let(:merge_request) { create(:merge_request, :merge_when_checks_pass) }
 
     it { is_expected.to eq('merge_when_checks_pass') }
-
-    context 'when merge_when_checks_pass is false' do
-      before do
-        stub_feature_flags(merge_when_checks_pass: false)
-      end
-
-      it { is_expected.to eq('merge_when_pipeline_succeeds') }
-    end
 
     context 'when auto merge is disabled' do
       let(:merge_request) { create(:merge_request) }
@@ -2334,17 +2326,9 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
   describe '#default_auto_merge_strategy' do
     subject { merge_request.default_auto_merge_strategy }
 
-    let(:merge_request) { create(:merge_request, :merge_when_pipeline_succeeds) }
+    let(:merge_request) { create(:merge_request, :merge_when_checks_pass) }
 
     it { is_expected.to eq(AutoMergeService::STRATEGY_MERGE_WHEN_CHECKS_PASS) }
-
-    context 'when merge_when_checks_pass feature flag is off' do
-      before do
-        stub_feature_flags(merge_when_checks_pass: false)
-      end
-
-      it { is_expected.to eq(AutoMergeService::STRATEGY_MERGE_WHEN_PIPELINE_SUCCEEDS) }
-    end
   end
 
   describe '#committers' do
@@ -3845,7 +3829,9 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
 
       with_them do
         it 'overrides mergeable_ci_state?' do
-          allow(subject).to receive(:mergeable_ci_state?) { mergeable_ci_state }
+          allow_next_instance_of(MergeRequests::Mergeability::CheckCiStatusService) do |check|
+            allow(check).to receive(:mergeable_ci_state?).and_return(mergeable_ci_state)
+          end
 
           expect(subject.mergeable?(skip_ci_check: skip_ci_check)).to eq(expected_mergeable)
         end
@@ -3936,7 +3922,6 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
 
       where(:auto_merge_strategy, :skip_checks) do
         ''                                                      | false
-        AutoMergeService::STRATEGY_MERGE_WHEN_PIPELINE_SUCCEEDS | false
         AutoMergeService::STRATEGY_MERGE_WHEN_CHECKS_PASS       | true
       end
 
@@ -4016,7 +4001,9 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
     subject { create(:merge_request) }
 
     it 'checks if merge request can be merged' do
-      allow(subject).to receive(:mergeable_ci_state?) { true }
+      allow_next_instance_of(MergeRequests::Mergeability::CheckCiStatusService) do |check|
+        allow(check).to receive(:mergeable_ci_state?).and_return(true)
+      end
       expect(subject).to receive(:check_mergeability)
 
       subject.mergeable?
@@ -4060,7 +4047,9 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
       context 'when #mergeable_ci_state? is false' do
         before do
           allow(subject.project).to receive(:only_allow_merge_if_pipeline_succeeds?) { true }
-          allow(subject).to receive(:mergeable_ci_state?) { false }
+          allow_next_instance_of(MergeRequests::Mergeability::CheckCiStatusService) do |check|
+            allow(check).to receive(:mergeable_ci_state?).and_return(false)
+          end
         end
 
         it 'returns false' do
@@ -4233,193 +4222,6 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
         it 'returns false' do
           expect(subject.has_ci_enabled?).to eq(false)
         end
-      end
-    end
-  end
-
-  describe '#mergeable_ci_state?' do
-    let(:pipeline) { build(:ci_empty_pipeline) }
-
-    before do
-      allow(subject).to receive(:head_pipeline) { pipeline }
-    end
-
-    context 'when the auto merge strategy is merge when checks pass and project has ci' do
-      subject { build(:merge_request, source_project: project, auto_merge_strategy: ::AutoMergeService::STRATEGY_MERGE_WHEN_CHECKS_PASS, auto_merge_enabled: true) }
-
-      let(:project) { build(:project, :auto_devops, only_allow_merge_if_pipeline_succeeds: false) }
-
-      before do
-        allow(subject).to receive(:has_ci_enabled?).and_return(true)
-      end
-
-      context 'and a failed pipeline is associated' do
-        before do
-          pipeline.status = 'failed'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-
-      context 'and a successful pipeline is associated' do
-        before do
-          pipeline.status = 'success'
-          allow(subject).to receive(:head_pipeline) { pipeline }
-        end
-
-        context 'and no pipelines are being created' do
-          it { expect(subject.mergeable_ci_state?).to be_truthy }
-        end
-
-        context 'and pipelines are being created' do
-          let!(:creation) { Ci::PipelineCreation::Requests.start_for_merge_request(subject) }
-
-          after do
-            Ci::PipelineCreation::Requests.succeeded(creation, pipeline.id)
-          end
-
-          it { expect(subject.mergeable_ci_state?).to be_falsey }
-        end
-      end
-
-      context 'and a skipped pipeline is associated' do
-        before do
-          pipeline.status = 'skipped'
-          allow(subject).to receive(:head_pipeline).and_return(pipeline)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-
-        context 'when project allows skipped pipelines' do
-          before do
-            project.allow_merge_on_skipped_pipeline = true
-          end
-
-          it { expect(subject.mergeable_ci_state?).to be_truthy }
-        end
-      end
-
-      context 'when no pipeline is associated' do
-        before do
-          allow(subject).to receive(:head_pipeline).and_return(nil)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-    end
-
-    context 'when it is only allowed to merge when build is green' do
-      subject { build(:merge_request, source_project: project) }
-
-      let(:project) { build(:project, :repository, only_allow_merge_if_pipeline_succeeds: true) }
-
-      context 'and a failed pipeline is associated' do
-        before do
-          pipeline.status = 'failed'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-
-      context 'and a successful pipeline is associated' do
-        before do
-          pipeline.status = 'success'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
-      end
-
-      context 'and a skipped pipeline is associated' do
-        before do
-          pipeline.status = 'skipped'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-
-      context 'when no pipeline is associated' do
-        before do
-          allow(subject).to receive(:head_pipeline).and_return(nil)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-    end
-
-    context 'when it is only allowed to merge when build is green or skipped' do
-      let(:project) { build(:project, :repository, only_allow_merge_if_pipeline_succeeds: true, allow_merge_on_skipped_pipeline: true) }
-
-      subject { build(:merge_request, source_project: project) }
-
-      context 'and a failed pipeline is associated' do
-        before do
-          pipeline.status = 'failed'
-          allow(subject).to receive(:head_pipeline).and_return(pipeline)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-
-      context 'and a successful pipeline is associated' do
-        before do
-          pipeline.status = 'success'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
-      end
-
-      context 'and a skipped pipeline is associated' do
-        before do
-          pipeline.status = 'skipped'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
-      end
-
-      context 'when no pipeline is associated' do
-        before do
-          allow(subject).to receive(:head_pipeline).and_return(nil)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_falsey }
-      end
-    end
-
-    context 'when merges are not restricted to green builds' do
-      let(:project) { build(:project, :repository, only_allow_merge_if_pipeline_succeeds: false) }
-
-      subject { build(:merge_request, source_project: project) }
-
-      context 'and a failed pipeline is associated' do
-        before do
-          pipeline.statuses << build(:commit_status, status: 'failed', project: project)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
-      end
-
-      context 'when no pipeline is associated' do
-        before do
-          allow(subject).to receive(:head_pipeline) { nil }
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
-      end
-
-      context 'and a skipped pipeline is associated' do
-        before do
-          pipeline.status = 'skipped'
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
-      end
-
-      context 'when no pipeline is associated' do
-        before do
-          allow(subject).to receive(:head_pipeline).and_return(nil)
-        end
-
-        it { expect(subject.mergeable_ci_state?).to be_truthy }
       end
     end
   end
@@ -6026,7 +5828,7 @@ RSpec.describe MergeRequest, factory_default: :keep, feature_category: :code_rev
     let!(:merge_request1) do
       create(
         :merge_request,
-        :merge_when_pipeline_succeeds,
+        :merge_when_checks_pass,
         target_project: project,
         target_branch: 'master',
         source_project: project,

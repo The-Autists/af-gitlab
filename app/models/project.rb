@@ -538,7 +538,7 @@ class Project < ApplicationRecord
   with_options to: :team do
     delegate :members, prefix: true
     delegate :add_member, :add_members, :member?
-    delegate :add_guest, :add_reporter, :add_developer, :add_maintainer, :add_owner, :add_role
+    delegate :add_guest, :add_planner, :add_reporter, :add_developer, :add_maintainer, :add_owner, :add_role
     delegate :has_user?
   end
 
@@ -564,6 +564,7 @@ class Project < ApplicationRecord
       delegate :allow_fork_pipelines_to_run_in_parent_project, :allow_fork_pipelines_to_run_in_parent_project=
       delegate :separated_caches, :separated_caches=
       delegate :id_token_sub_claim_components, :id_token_sub_claim_components=
+      delegate :delete_pipelines_in_seconds, :delete_pipelines_in_seconds=
     end
   end
 
@@ -1840,7 +1841,7 @@ class Project < ApplicationRecord
       .available_integration_names(include_instance_specific: false)
       .difference(disabled_integrations)
       .map { find_or_initialize_integration(_1) }
-      .sort_by(&:title)
+      .sort_by { |int| int.title.downcase }
   end
 
   # Returns a list of integration names that should be disabled at the project-level.
@@ -2140,7 +2141,7 @@ class Project < ApplicationRecord
 
   override :after_repository_change_head
   def after_repository_change_head
-    ProjectCacheWorker.perform_async(self.id, [], [:commit_count])
+    ProjectCacheWorker.perform_async(self.id, [], %w[commit_count])
 
     super
   end
@@ -2163,8 +2164,13 @@ class Project < ApplicationRecord
     create_repository(force: true) unless repository_exists?
   end
 
+  # Overridden in EE
   def allowed_to_share_with_group?
-    !namespace.share_with_group_lock
+    share_with_group_enabled?
+  end
+
+  def share_with_group_enabled?
+    !parent.share_with_group_lock?
   end
 
   def latest_successful_pipeline_for_default_branch
@@ -2361,7 +2367,7 @@ class Project < ApplicationRecord
     wiki.repository.expire_content_cache
 
     DetectRepositoryLanguagesWorker.perform_async(id)
-    ProjectCacheWorker.perform_async(self.id, [], [:repository_size, :wiki_size])
+    ProjectCacheWorker.perform_async(self.id, [], %w[repository_size wiki_size])
     AuthorizedProjectUpdate::ProjectRecalculateWorker.perform_async(id)
 
     enqueue_record_project_target_platforms
@@ -3315,7 +3321,7 @@ class Project < ApplicationRecord
   end
 
   def group_group_links
-    group&.shared_with_group_links&.of_ancestors_and_self || GroupGroupLink.none
+    group&.shared_with_group_links_of_ancestors_and_self || GroupGroupLink.none
   end
 
   def security_training_available?
@@ -3334,6 +3340,10 @@ class Project < ApplicationRecord
     return true if Gitlab::CurrentSettings.max_pages_custom_domains_per_project == 0
 
     pages_domains.count < Gitlab::CurrentSettings.max_pages_custom_domains_per_project
+  end
+
+  def pages_domain_present?(domain_url)
+    pages_url == domain_url || pages_domains.exists?(domain: domain_url)
   end
 
   # overridden in EE

@@ -167,6 +167,7 @@ Prerequisites:
 
 1. On the left sidebar, select **Search or go to** and find your group.
 1. Select **Settings > GitLab Duo**.
+1. Select **Assign seats** on the **Seat utilization** card.
 1. From the filter bar, select **Assigned seat** and **Yes**.
 1. User list is filtered to only users assigned a GitLab Duo seat.
 
@@ -184,6 +185,7 @@ Prerequisites:
      1. On the left sidebar, select **Subscription**.
      1. In **Subscription details**, to the right of **Last sync**, select
         synchronize subscription (**{retry}**).
+1. Select **Assign seats** on the **Seat utilization** card.
 1. To filter by users assigned to a GitLab Duo seat, in the **Filter users** bar, select **Assigned seat**, then select **Yes**.
 1. User list is filtered to only users assigned a GitLab Duo seat.
 
@@ -305,22 +307,6 @@ Once or twice each day, a CronJob reviews GitLab Duo seat assignments. If a user
 blocked, banned, or deactivated, their access to GitLab Duo features is automatically removed.
 
 After the seat has been removed, it becomes available and can be re-assigned to a new user.
-
-## Changes to GitLab Duo Pro and GitLab Duo Enterprise access
-
-DETAILS:
-**Tier:** Premium, Ultimate
-**Offering:** GitLab.com, Self-managed, GitLab Dedicated
-
-Starting October 17, 2024, customers with a Premium or Ultimate subscription
-must have a GitLab Duo add-on to access AI-powered features.
-
-To [continue using](https://about.gitlab.com/gitlab-duo/) GitLab Duo Pro or GitLab Duo Enterprise features, you can either:
-
-- Start a free trial
-- Purchase GitLab Duo Pro or Duo Enterprise
-
-GitLab Duo Enterprise is available only for Ultimate subscriptions.
 
 ## Troubleshooting
 

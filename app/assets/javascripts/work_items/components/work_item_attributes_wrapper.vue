@@ -144,9 +144,7 @@ export default {
       return this.isWidgetPresent(WIDGET_TYPE_MILESTONE);
     },
     showRolledupDates() {
-      return (
-        this.glFeatures.workItemsRolledupDates && this.workItemType === WORK_ITEM_TYPE_VALUE_EPIC
-      );
+      return this.workItemType === WORK_ITEM_TYPE_VALUE_EPIC;
     },
     showParent() {
       return this.workItemType === WORK_ITEM_TYPE_VALUE_EPIC ? this.hasSubepicsFeature : true;
@@ -342,7 +340,7 @@ export default {
     />
     <template v-if="workItemCrmContacts">
       <work-item-crm-contacts
-        class="gl-border-t gl-mb-5 gl-border-gray-50 gl-pt-5"
+        class="gl-border-t gl-mb-5 gl-border-subtle gl-pt-5"
         :full-path="fullPath"
         :work-item-id="workItem.id"
         :work-item-iid="workItem.iid"

@@ -1,11 +1,14 @@
 const { spawnSync } = require('node:child_process');
-const { readFile } = require('node:fs/promises');
+const { readFile, open, stat } = require('node:fs/promises');
 const parser = require('fast-xml-parser');
 const defaultChalk = require('chalk');
 const { getLocalQuarantinedFiles } = require('./jest_vue3_quarantine_utils');
 
 // Always use basic color output
 const chalk = new defaultChalk.constructor({ level: 1 });
+
+let quarantinedFiles;
+let filesThatChanged;
 
 async function parseJUnitReport() {
   let junit;
@@ -21,7 +24,7 @@ async function parseJUnitReport() {
     console.warn(e);
     // No JUnit report exists, or there was a parsing error. Either way, we
     // should not block the MR.
-    return { passed: [], total: 0 };
+    return [];
   }
 
   const failuresByFile = new Map();
@@ -41,54 +44,28 @@ async function parseJUnitReport() {
     }
   }
 
-  const quarantinedFiles = new Set(await getLocalQuarantinedFiles());
   const passed = [];
   for (const [file, failures] of failuresByFile.entries()) {
     if (failures === 0 && quarantinedFiles.has(file)) passed.push(file);
   }
 
-  return {
-    passed,
-    total: failuresByFile.size,
-  };
+  return passed;
 }
 
-/**
- * Wraps the output of `callback` in a collapsible section (for GitLab CI).
- *
- * Assumes `callback` is synchronous.
- *
- * See https://docs.gitlab.com/ee/ci/jobs/job_logs.html#custom-collapsible-sections
- */
-function section(header, callback, { showCollapsed = true } = {}) {
-  const ANSI_CLEAR_LINE = '\x1b[0K';
-  const timestamp = () => Math.floor(Date.now() / 1000);
-  const collapsed = showCollapsed ? '[collapsed=true]' : '';
-  const name = header.toLowerCase().replace(/\W+/g, '_');
-
-  console.log(
-    `${ANSI_CLEAR_LINE}section_start:${timestamp()}:${name}${collapsed}\r${ANSI_CLEAR_LINE}${chalk.cyan.bold(header)}`,
-  );
-
-  callback();
-
-  console.log(`${ANSI_CLEAR_LINE}section_end:${timestamp()}:${name}\r${ANSI_CLEAR_LINE}`);
-}
-
-function reportPassingSpecsShouldBeUnquarantined(passed) {
+function reportSpecsShouldBeUnquarantined(files) {
   const docsLink =
     // eslint-disable-next-line no-restricted-syntax
     'https://docs.gitlab.com/ee/development/testing_guide/testing_vue3.html#quarantine-list';
   console.warn(' ');
   console.warn(
-    `The following ${passed.length} spec file(s) now pass(es) under Vue 3, and so must be removed from quarantine:`,
+    `The following ${files.length} spec files either now pass under Vue 3, or no longer exist, and so must be removed from quarantine:`,
   );
   console.warn(' ');
-  console.warn(passed.join('\n'));
+  console.warn(files.join('\n'));
   console.warn(' ');
   console.warn(
     chalk.red(
-      `To fix this job, remove the file(s) listed above from the file ${chalk.underline('scripts/frontend/quarantined_vue3_specs.txt')}.`,
+      `To fix this job, remove the files listed above from the file ${chalk.underline('scripts/frontend/quarantined_vue3_specs.txt')}.`,
     ),
   );
   console.warn(`For more information, please see ${docsLink}.`);
@@ -106,8 +83,38 @@ async function changedFiles() {
   return files.flat();
 }
 
+function intersection(a, b) {
+  const result = new Set();
+
+  for (const element of a) {
+    if (b.has(element)) result.add(element);
+  }
+
+  return result;
+}
+
+async function getRemovedQuarantinedSpecs() {
+  const removedQuarantinedSpecs = [];
+
+  for (const file of intersection(filesThatChanged, quarantinedFiles)) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      await stat(file);
+    } catch (e) {
+      if (e.code === 'ENOENT') removedQuarantinedSpecs.push(file);
+    }
+  }
+
+  return removedQuarantinedSpecs;
+}
+
 async function main() {
-  const filesThatChanged = await changedFiles();
+  filesThatChanged = await changedFiles();
+  quarantinedFiles = new Set(await getLocalQuarantinedFiles());
+  const jestStdout = (await open('jest_stdout', 'w')).createWriteStream();
+  const jestStderr = (await open('jest_stderr', 'w')).createWriteStream();
+
+  console.log('Running quarantined specs...');
 
   // Note: we don't care what Jest's exit code is.
   //
@@ -120,44 +127,42 @@ async function main() {
   // If it's non-zero, then either:
   //   - one or more specs failed (which is expected!), or
   //   - there was some unknown error. We shouldn't block MRs in this case.
-  section('Jest output (only useful for debugging the CI job itself, not the tests)', () =>
-    spawnSync(
-      'node_modules/.bin/jest',
-      [
-        '--config',
-        'jest.config.js',
-        '--ci',
-        '--findRelatedTests',
-        ...filesThatChanged,
-        '--passWithNoTests',
-        // Explicitly have one shard, so that the `shard` method of the sequencer is called.
-        '--shard=1/1',
-        '--testSequencer',
-        './scripts/frontend/check_jest_vue3_quarantine_sequencer.js',
-        '--logHeapUsage',
-      ],
-      {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          VUE_VERSION: '3',
-        },
+  spawnSync(
+    'node_modules/.bin/jest',
+    [
+      '--config',
+      'jest.config.js',
+      '--ci',
+      '--findRelatedTests',
+      ...filesThatChanged,
+      '--passWithNoTests',
+      // Explicitly have one shard, so that the `shard` method of the sequencer is called.
+      '--shard=1/1',
+      '--testSequencer',
+      './scripts/frontend/check_jest_vue3_quarantine_sequencer.js',
+      '--logHeapUsage',
+    ],
+    {
+      stdio: ['inherit', jestStdout, jestStderr],
+      env: {
+        ...process.env,
+        VUE_VERSION: '3',
       },
-    ),
+    },
   );
 
-  const { passed, total } = await parseJUnitReport();
+  const passed = await parseJUnitReport();
+  const removedQuarantinedSpecs = await getRemovedQuarantinedSpecs();
+  const filesToReport = [...passed, ...removedQuarantinedSpecs];
 
-  if (total.length === 0) {
+  if (filesToReport.length === 0) {
     // No tests ran, or there was some unexpected error. Either way, exit
     // successfully.
     return;
   }
 
-  if (passed.length > 0) {
-    process.exitCode = 1;
-    reportPassingSpecsShouldBeUnquarantined(passed);
-  }
+  process.exitCode = 1;
+  reportSpecsShouldBeUnquarantined(filesToReport);
 }
 
 main().catch((e) => {

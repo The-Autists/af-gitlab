@@ -813,6 +813,9 @@ Gitlab.ee do
   Settings.cron_jobs['elastic_index_bulk_cron_worker'] ||= {}
   Settings.cron_jobs['elastic_index_bulk_cron_worker']['cron'] ||= '*/1 * * * *'
   Settings.cron_jobs['elastic_index_bulk_cron_worker']['job_class'] ||= 'ElasticIndexBulkCronWorker'
+  Settings.cron_jobs['elastic_indexing_control_worker'] ||= {}
+  Settings.cron_jobs['elastic_indexing_control_worker']['cron'] ||= '*/1 * * * *'
+  Settings.cron_jobs['elastic_indexing_control_worker']['job_class'] ||= 'ElasticIndexingControlWorker'
   Settings.cron_jobs['elastic_index_embedding_bulk_cron_worker'] ||= {}
   Settings.cron_jobs['elastic_index_embedding_bulk_cron_worker']['cron'] ||= '*/1 * * * *'
   Settings.cron_jobs['elastic_index_embedding_bulk_cron_worker']['job_class'] ||= 'Search::ElasticIndexEmbeddingBulkCronWorker'
@@ -975,6 +978,11 @@ Gitlab.ee do
     Settings.cron_jobs['click_house_audit_events_sync_worker'] ||= {}
     Settings.cron_jobs['click_house_audit_events_sync_worker']['cron'] ||= "*/3 * * * *"
     Settings.cron_jobs['click_house_audit_events_sync_worker']['job_class'] = 'ClickHouse::AuditEventsSyncWorker'
+    Settings.cron_jobs['gitlab_subscriptions_offline_cloud_license_provision_worker']['status'] = 'disabled'
+  end
+
+  Gitlab.jh do
+    Settings.cron_jobs['gitlab_subscriptions_offline_cloud_license_provision_worker']['status'] = 'disabled'
   end
 end
 
@@ -1027,6 +1035,7 @@ Settings.topology_service['private_key_file'] ||= '/home/git/gitlab/config/topol
 Settings['cell'] ||= {}
 Settings.cell['id'] ||= 1
 Settings.cell['name'] ||= 'cell-1'
+Settings.cell['skip_sequence_alteration'] ||= false
 
 #
 # GitLab KAS

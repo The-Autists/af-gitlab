@@ -214,7 +214,7 @@ export default {
             <gl-link v-if="data.value" :href="data.value" target="_blank">{{
               $options.i18n.ARTIFACTS_LABEL
             }}</gl-link>
-            <div v-else class="gl-italic gl-text-gray-500">
+            <div v-else class="gl-italic gl-text-subtle">
               {{ $options.i18n.NO_ARTIFACT }}
             </div>
           </template>
@@ -232,7 +232,7 @@ export default {
             <gl-link v-if="data.value" :href="data.value.path" target="_blank">{{
               data.value.name
             }}</gl-link>
-            <div v-else class="gl-italic gl-text-gray-500">
+            <div v-else class="gl-italic gl-text-subtle">
               {{ $options.i18n.NO_JOB }}
             </div>
           </template>
@@ -266,7 +266,7 @@ export default {
           </tbody>
         </table>
 
-        <div v-else class="gl-text-secondary">{{ $options.i18n.NO_METADATA_MESSAGE }}</div>
+        <div v-else class="gl-text-subtle">{{ $options.i18n.NO_METADATA_MESSAGE }}</div>
       </div>
     </section>
   </div>
